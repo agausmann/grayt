@@ -18,6 +18,6 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
-    image.write_ppm(File::create("test.ppm")?, 255)?;
+    image.write_ppm(File::create("test.ppm")?)?;
     Ok(())
 }

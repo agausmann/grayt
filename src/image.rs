@@ -49,22 +49,28 @@ impl Image {
         &mut self.pixels[y * self.width + x]
     }
 
-    pub fn write_ppm<W: Write>(&self, mut writer: W, resolution: u16) -> io::Result<()> {
-        writeln!(writer, "P3")?;
-        writeln!(writer, "{} {} {}", self.width(), self.height(), resolution)?;
-        let resolution = resolution as f32;
+    pub fn write_ppm<W: Write>(&self, mut writer: W) -> io::Result<()> {
+        let resolution = 255u8;
+        let fres = resolution as f32;
 
+        let mut buffer = Vec::with_capacity(self.width() * self.height() * 3);
         for y in 0..self.height() {
             for x in 0..self.width() {
                 let pixel = self.pixel(x, y);
                 for channel in [pixel.r, pixel.g, pixel.b] {
-                    let clipped = (channel.clamp(0.0, 1.0) * resolution).round() as u16;
-                    write!(writer, " {}", clipped)?;
+                    let clipped = (channel.clamp(0.0, 1.0) * fres).round() as u8;
+                    buffer.push(clipped);
                 }
             }
-            writeln!(writer)?;
         }
-
+        write!(
+            writer,
+            "P6 {} {} {} ",
+            self.width(),
+            self.height(),
+            resolution
+        )?;
+        writer.write_all(&buffer)?;
         Ok(())
     }
 }
