@@ -11,9 +11,10 @@ fn main() -> anyhow::Result<()> {
 
     for y in 0..image.height() {
         for x in 0..image.width() {
+            let up_y = image.height() - 1 - y;
             let pixel = image.pixel_mut(x, y);
             pixel.r = (x as f32) / fwidth;
-            pixel.g = (y as f32) / fheight;
+            pixel.g = (up_y as f32) / fheight;
             pixel.b = 0.25;
         }
     }
