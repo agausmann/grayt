@@ -1,10 +1,36 @@
 use std::io::{self, Write};
 
+use glam::Vec3;
+
 #[derive(Debug, Clone, Copy)]
 pub struct Pixel {
     pub r: f32,
     pub g: f32,
     pub b: f32,
+}
+
+impl From<[f32; 3]> for Pixel {
+    fn from([r, g, b]: [f32; 3]) -> Self {
+        Self { r, g, b }
+    }
+}
+
+impl From<Vec3> for Pixel {
+    fn from(vec: Vec3) -> Self {
+        Pixel::rgb(vec.x, vec.y, vec.z)
+    }
+}
+
+impl From<Pixel> for [f32; 3] {
+    fn from(pixel: Pixel) -> Self {
+        [pixel.r, pixel.g, pixel.b]
+    }
+}
+
+impl From<Pixel> for Vec3 {
+    fn from(pixel: Pixel) -> Self {
+        Vec3::new(pixel.r, pixel.g, pixel.b)
+    }
 }
 
 impl Pixel {
