@@ -1,6 +1,9 @@
 pub mod image;
 
-use std::fs::File;
+use std::{
+    fs::File,
+    io::{self, Write},
+};
 
 use image::{Image, Pixel};
 
@@ -10,14 +13,18 @@ fn main() -> anyhow::Result<()> {
     let fheight = image.height() as f32;
 
     for y in 0..image.height() {
+        let up_y = image.height() - 1 - y;
+        eprint!("\r {} ...     ", up_y);
+        io::stdout().flush()?;
+
         for x in 0..image.width() {
-            let up_y = image.height() - 1 - y;
             let pixel = image.pixel_mut(x, y);
             pixel.r = (x as f32) / fwidth;
             pixel.g = (up_y as f32) / fheight;
             pixel.b = 0.25;
         }
     }
+    eprintln!();
 
     image.write_ppm(File::create("test.ppm")?)?;
     Ok(())
