@@ -32,13 +32,13 @@ fn ray_color(ray: &Ray) -> Vec3 {
 fn hit_sphere(center: &Vec3, radius: f32, ray: &Ray) -> Option<f32> {
     let center_to_origin = ray.origin - *center;
 
-    let a = ray.direction.dot(ray.direction);
-    let b = 2.0 * ray.direction.dot(center_to_origin);
-    let c = center_to_origin.dot(center_to_origin) - radius * radius;
+    let a = ray.direction.length_squared();
+    let half_b = ray.direction.dot(center_to_origin);
+    let c = center_to_origin.length_squared() - radius * radius;
 
-    let discriminant = b * b - 4.0 * a * c;
+    let discriminant = half_b * half_b - a * c;
     if discriminant >= 0.0 {
-        Some((-b - discriminant.sqrt()) / (2.0 * a))
+        Some((-half_b - discriminant.sqrt()) / a)
     } else {
         None
     }
