@@ -4,7 +4,7 @@ pub mod image;
 pub mod ray;
 
 use glam::Vec3;
-use rand::Rng;
+use rand::{distributions::Uniform, prelude::Distribution, Rng};
 
 use std::{
     fs::File,
@@ -18,9 +18,33 @@ use crate::{
     ray::Ray,
 };
 
-fn ray_color(ray: &Ray, world: &World) -> Vec3 {
+fn random_in_unit_sphere<R: Rng>(rng: &mut R) -> Vec3 {
+    let dist = Uniform::new_inclusive(-1.0, 1.0);
+    loop {
+        let candidate = Vec3::new(dist.sample(rng), dist.sample(rng), dist.sample(rng));
+        if candidate.length_squared() <= 1.0 {
+            return candidate;
+        }
+    }
+}
+
+fn ray_color<R: Rng>(ray: &Ray, world: &World, rng: &mut R, depth: u32) -> Vec3 {
+    if depth == 0 {
+        return Vec3::ZERO;
+    }
+
     match world.hit(ray, 0.0, f32::INFINITY) {
-        Some(hit) => 0.5 * (hit.normal + Vec3::ONE),
+        Some(hit) => {
+            0.5 * ray_color(
+                &Ray {
+                    origin: hit.point,
+                    direction: hit.normal + random_in_unit_sphere(rng),
+                },
+                world,
+                rng,
+                depth - 1,
+            )
+        }
         None => {
             let unit = ray.direction.normalize();
             let t = 0.5 * (unit.y + 1.0);
@@ -34,6 +58,7 @@ fn main() -> anyhow::Result<()> {
     let image_height = 400;
     let image_width = ((image_height as f32) * image_aspect) as usize;
     let samples_per_pixel = 100;
+    let max_depth = 50;
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
 
@@ -68,9 +93,9 @@ fn main() -> anyhow::Result<()> {
                 let u = (x as f32 + du) / (image_width as f32);
                 let v = (up_y as f32 + dv) / (image_height as f32);
                 let ray = camera.get_ray(u, v);
-                sum += ray_color(&ray, &world);
+                sum += ray_color(&ray, &world, &mut rng, max_depth);
             }
-            *image.pixel_mut(x, y) = (sum / (samples_per_pixel as f32)).into();
+            *image.pixel_mut(x, y) = (sum / (samples_per_pixel as f32)).powf(0.5).into();
         }
     }
     eprintln!();
