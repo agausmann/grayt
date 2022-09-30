@@ -53,6 +53,12 @@ fn refract(incident: DVec3, normal: DVec3, ir_ratio: f64) -> DVec3 {
     r_perp + r_par
 }
 
+fn reflectance(cos: f64, ir_ratio: f64) -> f64 {
+    let r0 = (1.0 - ir_ratio) / (1.0 + ir_ratio);
+    let r0 = r0 * r0;
+    r0 + (1.0 - r0) * (1.0 - cos).powi(5)
+}
+
 pub struct Scatter {
     pub ray: Ray,
     pub attenuation: DVec3,
@@ -131,7 +137,9 @@ impl Material for Dielectric {
         let cos = hit.normal.dot(-unit_direction).min(1.0);
         let sin = (1.0 - cos * cos).sqrt();
 
-        let direction = if sin * ir_ratio > 1.0 {
+        let mut rng = rand::thread_rng();
+
+        let direction = if sin * ir_ratio > 1.0 || rng.gen_bool(reflectance(cos, ir_ratio)) {
             reflect(ray.direction, hit.normal)
         } else {
             refract(unit_direction, hit.normal, ir_ratio)
