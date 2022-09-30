@@ -2,9 +2,27 @@ use crate::ray::Ray;
 use glam::Vec3;
 
 pub struct HitRecord {
+    pub t: f32,
     pub point: Vec3,
     pub normal: Vec3,
-    pub t: f32,
+    pub is_front_face: bool,
+}
+
+impl HitRecord {
+    pub fn from_outward_normal(t: f32, point: Vec3, ray: &Ray, outward_normal: Vec3) -> Self {
+        let is_front_face = ray.direction.dot(outward_normal) < 0.0;
+        let normal = if is_front_face {
+            outward_normal
+        } else {
+            -outward_normal
+        };
+        Self {
+            t,
+            point,
+            normal,
+            is_front_face,
+        }
+    }
 }
 
 pub trait Hittable {
@@ -70,7 +88,12 @@ impl Hittable for Sphere {
         };
 
         let point = ray.at(t);
-        let normal = (point - self.center) / self.radius;
-        Some(HitRecord { point, normal, t })
+        let outward_normal = (point - self.center) / self.radius;
+        Some(HitRecord::from_outward_normal(
+            t,
+            point,
+            ray,
+            outward_normal,
+        ))
     }
 }
