@@ -16,7 +16,7 @@ use crate::{
     camera::Camera,
     hittable::{Hittable, Sphere, World},
     image::{Image, Pixel},
-    material::Lambertian,
+    material::{Lambertian, Metal},
     ray::Ray,
 };
 
@@ -48,8 +48,17 @@ fn main() -> anyhow::Result<()> {
     let samples_per_pixel = 100;
     let max_depth = 50;
 
-    let diffuse_gray = Lambertian {
-        albedo: DVec3::splat(0.5),
+    let ground = Lambertian {
+        albedo: DVec3::new(0.8, 0.8, 0.0),
+    };
+    let center = Lambertian {
+        albedo: DVec3::new(0.7, 0.3, 0.3),
+    };
+    let left = Metal {
+        albedo: DVec3::new(0.8, 0.8, 0.8),
+    };
+    let right = Metal {
+        albedo: DVec3::new(0.8, 0.6, 0.2),
     };
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
@@ -59,14 +68,24 @@ fn main() -> anyhow::Result<()> {
     let world = World {
         objects: vec![
             Box::new(Sphere {
-                center: DVec3::new(0.0, 0.0, -1.0),
-                radius: 0.5,
-                material: diffuse_gray.clone(),
-            }),
-            Box::new(Sphere {
                 center: DVec3::new(0.0, -100.5, -1.0),
                 radius: 100.0,
-                material: diffuse_gray.clone(),
+                material: ground,
+            }),
+            Box::new(Sphere {
+                center: DVec3::new(0.0, 0.0, -1.0),
+                radius: 0.5,
+                material: center,
+            }),
+            Box::new(Sphere {
+                center: DVec3::new(-1.0, 0.0, -1.0),
+                radius: 0.5,
+                material: left,
+            }),
+            Box::new(Sphere {
+                center: DVec3::new(1.0, 0.0, -1.0),
+                radius: 0.5,
+                material: right,
             }),
         ],
     };

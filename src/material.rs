@@ -42,6 +42,10 @@ fn is_near_zero(v: DVec3) -> bool {
     v.abs().cmplt(DVec3::splat(eps)).all()
 }
 
+fn reflect(incident: DVec3, normal: DVec3) -> DVec3 {
+    incident - 2.0 * incident.dot(normal) * normal
+}
+
 pub struct Scatter {
     pub ray: Ray,
     pub attenuation: DVec3,
@@ -76,5 +80,27 @@ impl Material for Lambertian {
             },
             attenuation: self.albedo,
         })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Metal {
+    pub albedo: DVec3,
+}
+
+impl Material for Metal {
+    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<Scatter> {
+        let reflected = reflect(ray.direction.normalize(), hit.normal);
+        if reflected.dot(hit.normal) > 0.0 {
+            Some(Scatter {
+                ray: Ray {
+                    origin: hit.point,
+                    direction: reflected,
+                },
+                attenuation: self.albedo,
+            })
+        } else {
+            None
+        }
     }
 }
