@@ -51,11 +51,13 @@ fn main() -> anyhow::Result<()> {
     let ground = Lambertian {
         albedo: DVec3::new(0.8, 0.8, 0.0),
     };
-    let center = Dielectric { ir: 1.5 };
+    let center = Lambertian {
+        albedo: DVec3::new(0.1, 0.2, 0.5),
+    };
     let left = Dielectric { ir: 1.5 };
     let right = Metal {
         albedo: DVec3::new(0.8, 0.6, 0.2),
-        fuzz: 1.0,
+        fuzz: 0.0,
     };
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);

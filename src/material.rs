@@ -126,10 +126,20 @@ impl Material for Dielectric {
         } else {
             self.ir
         };
+
+        let unit_direction = ray.direction.normalize();
+        let cos = hit.normal.dot(-unit_direction).min(1.0);
+        let sin = (1.0 - cos * cos).sqrt();
+
+        let direction = if sin * ir_ratio > 1.0 {
+            reflect(ray.direction, hit.normal)
+        } else {
+            refract(unit_direction, hit.normal, ir_ratio)
+        };
         Some(Scatter {
             ray: Ray {
                 origin: hit.point,
-                direction: refract(ray.direction.normalize(), hit.normal, ir_ratio),
+                direction,
             },
             attenuation: DVec3::new(1.0, 1.0, 1.0),
         })
