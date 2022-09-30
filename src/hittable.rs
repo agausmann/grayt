@@ -1,15 +1,22 @@
-use crate::ray::Ray;
+use crate::{material::Material, ray::Ray};
 use glam::DVec3;
 
-pub struct HitRecord {
+pub struct HitRecord<'a> {
     pub t: f64,
     pub point: DVec3,
     pub normal: DVec3,
     pub is_front_face: bool,
+    pub material: &'a dyn Material,
 }
 
-impl HitRecord {
-    pub fn from_outward_normal(t: f64, point: DVec3, ray: &Ray, outward_normal: DVec3) -> Self {
+impl<'a> HitRecord<'a> {
+    pub fn from_outward_normal(
+        t: f64,
+        point: DVec3,
+        ray: &Ray,
+        outward_normal: DVec3,
+        material: &'a dyn Material,
+    ) -> Self {
         let is_front_face = ray.direction.dot(outward_normal) < 0.0;
         let normal = if is_front_face {
             outward_normal
@@ -21,12 +28,13 @@ impl HitRecord {
             point,
             normal,
             is_front_face,
+            material,
         }
     }
 }
 
 pub trait Hittable {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
+    fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>>;
 }
 
 pub struct World {
@@ -59,12 +67,13 @@ impl Hittable for World {
     }
 }
 
-pub struct Sphere {
+pub struct Sphere<Mat> {
     pub center: DVec3,
     pub radius: f64,
+    pub material: Mat,
 }
 
-impl Hittable for Sphere {
+impl<Mat: Material> Hittable for Sphere<Mat> {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let center_to_origin = ray.origin - self.center;
 
@@ -94,6 +103,7 @@ impl Hittable for Sphere {
             point,
             ray,
             outward_normal,
+            &self.material,
         ))
     }
 }

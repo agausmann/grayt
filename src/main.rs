@@ -1,10 +1,11 @@
 pub mod camera;
 pub mod hittable;
 pub mod image;
+pub mod material;
 pub mod ray;
 
 use glam::DVec3;
-use rand::{distributions::Uniform, prelude::Distribution, Rng};
+use rand::Rng;
 
 use std::{
     fs::File,
@@ -15,36 +16,9 @@ use crate::{
     camera::Camera,
     hittable::{Hittable, Sphere, World},
     image::{Image, Pixel},
+    material::Lambertian,
     ray::Ray,
 };
-
-fn random_in_unit_sphere<R: Rng>(rng: &mut R) -> DVec3 {
-    let dist = Uniform::new_inclusive(-1.0, 1.0);
-    loop {
-        let candidate = DVec3::new(dist.sample(rng), dist.sample(rng), dist.sample(rng));
-        if candidate.length_squared() <= 1.0 {
-            return candidate;
-        }
-    }
-}
-
-fn random_on_unit_sphere<R: Rng>(rng: &mut R) -> DVec3 {
-    loop {
-        let candidate = random_in_unit_sphere(rng);
-        if let Some(unit) = candidate.try_normalize() {
-            return unit;
-        }
-    }
-}
-
-fn random_on_hemisphere<R: Rng>(rng: &mut R, normal: DVec3) -> DVec3 {
-    let unit = random_on_unit_sphere(rng);
-    if unit.dot(normal) > 0.0 {
-        unit
-    } else {
-        -unit
-    }
-}
 
 fn ray_color<R: Rng>(ray: &Ray, world: &World, rng: &mut R, depth: u32) -> DVec3 {
     if depth == 0 {
@@ -53,15 +27,11 @@ fn ray_color<R: Rng>(ray: &Ray, world: &World, rng: &mut R, depth: u32) -> DVec3
 
     match world.hit(ray, 0.001, f64::INFINITY) {
         Some(hit) => {
-            0.5 * ray_color(
-                &Ray {
-                    origin: hit.point,
-                    direction: hit.normal + random_on_unit_sphere(rng),
-                },
-                world,
-                rng,
-                depth - 1,
-            )
+            if let Some(scatter) = hit.material.scatter(ray, &hit) {
+                scatter.attenuation * ray_color(&scatter.ray, world, rng, depth - 1)
+            } else {
+                DVec3::ZERO
+            }
         }
         None => {
             let unit = ray.direction.normalize();
@@ -78,6 +48,10 @@ fn main() -> anyhow::Result<()> {
     let samples_per_pixel = 100;
     let max_depth = 50;
 
+    let diffuse_gray = Lambertian {
+        albedo: DVec3::splat(0.5),
+    };
+
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
 
     let camera = Camera::new(&Default::default());
@@ -87,10 +61,12 @@ fn main() -> anyhow::Result<()> {
             Box::new(Sphere {
                 center: DVec3::new(0.0, 0.0, -1.0),
                 radius: 0.5,
+                material: diffuse_gray.clone(),
             }),
             Box::new(Sphere {
                 center: DVec3::new(0.0, -100.5, -1.0),
                 radius: 100.0,
+                material: diffuse_gray.clone(),
             }),
         ],
     };
