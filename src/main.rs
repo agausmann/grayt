@@ -28,6 +28,24 @@ fn random_in_unit_sphere<R: Rng>(rng: &mut R) -> DVec3 {
     }
 }
 
+fn random_on_unit_sphere<R: Rng>(rng: &mut R) -> DVec3 {
+    loop {
+        let candidate = random_in_unit_sphere(rng);
+        if let Some(unit) = candidate.try_normalize() {
+            return unit;
+        }
+    }
+}
+
+fn random_on_hemisphere<R: Rng>(rng: &mut R, normal: DVec3) -> DVec3 {
+    let unit = random_on_unit_sphere(rng);
+    if unit.dot(normal) > 0.0 {
+        unit
+    } else {
+        -unit
+    }
+}
+
 fn ray_color<R: Rng>(ray: &Ray, world: &World, rng: &mut R, depth: u32) -> DVec3 {
     if depth == 0 {
         return DVec3::ZERO;
@@ -38,7 +56,7 @@ fn ray_color<R: Rng>(ray: &Ray, world: &World, rng: &mut R, depth: u32) -> DVec3
             0.5 * ray_color(
                 &Ray {
                     origin: hit.point,
-                    direction: hit.normal + random_in_unit_sphere(rng),
+                    direction: random_on_hemisphere(rng, hit.normal),
                 },
                 world,
                 rng,
