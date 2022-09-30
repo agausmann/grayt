@@ -12,12 +12,24 @@ use crate::image::{Image, Pixel};
 use crate::ray::Ray;
 
 fn ray_color(ray: &Ray) -> Vec3 {
+    let sphere_center = Vec3::new(0.0, 0.0, -1.0);
+    let sphere_radius = 0.5;
+
+    match hit_sphere(&sphere_center, sphere_radius, &ray) {
+        Some(t) if t > 0.0 => {
+            let hit_point = ray.at(t);
+            let normal = (hit_point - sphere_center).normalize();
+            return 0.5 * (normal + Vec3::ONE);
+        }
+        _ => {}
+    }
+
     let unit = ray.direction.normalize();
     let t = 0.5 * (unit.y + 1.0);
     (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
 }
 
-fn hit_sphere(center: &Vec3, radius: f32, ray: &Ray) -> bool {
+fn hit_sphere(center: &Vec3, radius: f32, ray: &Ray) -> Option<f32> {
     let center_to_origin = ray.origin - *center;
 
     let a = ray.direction.dot(ray.direction);
@@ -25,7 +37,11 @@ fn hit_sphere(center: &Vec3, radius: f32, ray: &Ray) -> bool {
     let c = center_to_origin.dot(center_to_origin) - radius * radius;
 
     let discriminant = b * b - 4.0 * a * c;
-    discriminant > 0.0
+    if discriminant >= 0.0 {
+        Some((-b - discriminant.sqrt()) / (2.0 * a))
+    } else {
+        None
+    }
 }
 
 fn main() -> anyhow::Result<()> {
@@ -36,9 +52,6 @@ fn main() -> anyhow::Result<()> {
     let viewport_height = 2.0;
     let viewport_width = viewport_height * image_aspect;
     let focal_length = 1.0;
-
-    let sphere_center = Vec3::new(0.0, 0.0, -1.0);
-    let sphere_radius = 0.5;
 
     let eye = Vec3::ZERO;
     let horizontal = viewport_width * Vec3::X;
@@ -61,11 +74,7 @@ fn main() -> anyhow::Result<()> {
             };
 
             let pixel = image.pixel_mut(x, y);
-            if hit_sphere(&sphere_center, sphere_radius, &ray) {
-                *pixel = Pixel::rgb(1.0, 0.0, 0.0);
-            } else {
-                *pixel = ray_color(&ray).into();
-            }
+            *pixel = ray_color(&ray).into();
         }
     }
     eprintln!();
