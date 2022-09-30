@@ -1,8 +1,10 @@
+pub mod camera;
 pub mod hittable;
 pub mod image;
 pub mod ray;
 
 use glam::Vec3;
+use rand::Rng;
 
 use std::{
     fs::File,
@@ -10,6 +12,7 @@ use std::{
 };
 
 use crate::{
+    camera::Camera,
     hittable::{Hittable, Sphere, World},
     image::{Image, Pixel},
     ray::Ray,
@@ -30,17 +33,11 @@ fn main() -> anyhow::Result<()> {
     let image_aspect = 16.0 / 9.0;
     let image_height = 400;
     let image_width = ((image_height as f32) * image_aspect) as usize;
-
-    let viewport_height = 2.0;
-    let viewport_width = viewport_height * image_aspect;
-    let focal_length = 1.0;
-
-    let eye = Vec3::ZERO;
-    let horizontal = viewport_width * Vec3::X;
-    let vertical = viewport_height * Vec3::Y;
-    let lower_left = eye - horizontal / 2.0 - vertical / 2.0 - focal_length * Vec3::Z;
+    let samples_per_pixel = 100;
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
+
+    let camera = Camera::new(&Default::default());
 
     let world = World {
         objects: vec![
@@ -55,21 +52,25 @@ fn main() -> anyhow::Result<()> {
         ],
     };
 
+    let mut rng = rand::thread_rng();
+
     for y in 0..image_height {
         let up_y = image_height - 1 - y;
         eprint!("\r {} ...     ", up_y);
         io::stdout().flush()?;
 
         for x in 0..image_width {
-            let u = (x as f32) / (image_width as f32);
-            let v = (up_y as f32) / (image_height as f32);
-            let ray = Ray {
-                origin: eye,
-                direction: lower_left + u * horizontal + v * vertical - eye,
-            };
+            let mut sum = Vec3::ZERO;
+            for _ in 0..samples_per_pixel {
+                let du: f32 = rng.gen();
+                let dv: f32 = rng.gen();
 
-            let pixel = image.pixel_mut(x, y);
-            *pixel = ray_color(&ray, &world).into();
+                let u = (x as f32 + du) / (image_width as f32);
+                let v = (up_y as f32 + dv) / (image_height as f32);
+                let ray = camera.get_ray(u, v);
+                sum += ray_color(&ray, &world);
+            }
+            *image.pixel_mut(x, y) = (sum / (samples_per_pixel as f32)).into();
         }
     }
     eprintln!();
