@@ -79,6 +79,11 @@ fn main() -> anyhow::Result<()> {
             Box::new(Sphere {
                 center: DVec3::new(-1.0, 0.0, -1.0),
                 radius: 0.5,
+                material: left.clone(),
+            }),
+            Box::new(Sphere {
+                center: DVec3::new(-1.0, 0.0, -1.0),
+                radius: -0.4,
                 material: left,
             }),
             Box::new(Sphere {
