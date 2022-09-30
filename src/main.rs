@@ -1,3 +1,4 @@
+pub mod hittable;
 pub mod image;
 pub mod ray;
 
@@ -8,39 +9,20 @@ use std::{
     io::{self, Write},
 };
 
-use crate::image::{Image, Pixel};
-use crate::ray::Ray;
+use crate::{
+    hittable::{Hittable, Sphere, World},
+    image::{Image, Pixel},
+    ray::Ray,
+};
 
-fn ray_color(ray: &Ray) -> Vec3 {
-    let sphere_center = Vec3::new(0.0, 0.0, -1.0);
-    let sphere_radius = 0.5;
-
-    match hit_sphere(&sphere_center, sphere_radius, &ray) {
-        Some(t) if t > 0.0 => {
-            let hit_point = ray.at(t);
-            let normal = (hit_point - sphere_center).normalize();
-            return 0.5 * (normal + Vec3::ONE);
+fn ray_color(ray: &Ray, world: &World) -> Vec3 {
+    match world.hit(ray, 0.0, f32::INFINITY) {
+        Some(hit) => 0.5 * (hit.normal + Vec3::ONE),
+        None => {
+            let unit = ray.direction.normalize();
+            let t = 0.5 * (unit.y + 1.0);
+            (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
         }
-        _ => {}
-    }
-
-    let unit = ray.direction.normalize();
-    let t = 0.5 * (unit.y + 1.0);
-    (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
-}
-
-fn hit_sphere(center: &Vec3, radius: f32, ray: &Ray) -> Option<f32> {
-    let center_to_origin = ray.origin - *center;
-
-    let a = ray.direction.length_squared();
-    let half_b = ray.direction.dot(center_to_origin);
-    let c = center_to_origin.length_squared() - radius * radius;
-
-    let discriminant = half_b * half_b - a * c;
-    if discriminant >= 0.0 {
-        Some((-half_b - discriminant.sqrt()) / a)
-    } else {
-        None
     }
 }
 
@@ -60,6 +42,19 @@ fn main() -> anyhow::Result<()> {
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
 
+    let world = World {
+        objects: vec![
+            Box::new(Sphere {
+                center: Vec3::new(0.0, 0.0, -1.0),
+                radius: 0.5,
+            }),
+            Box::new(Sphere {
+                center: Vec3::new(0.0, -100.5, -1.0),
+                radius: 100.0,
+            }),
+        ],
+    };
+
     for y in 0..image_height {
         let up_y = image_height - 1 - y;
         eprint!("\r {} ...     ", up_y);
@@ -74,7 +69,7 @@ fn main() -> anyhow::Result<()> {
             };
 
             let pixel = image.pixel_mut(x, y);
-            *pixel = ray_color(&ray).into();
+            *pixel = ray_color(&ray, &world).into();
         }
     }
     eprintln!();
