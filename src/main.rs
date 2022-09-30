@@ -56,9 +56,11 @@ fn main() -> anyhow::Result<()> {
     };
     let left = Metal {
         albedo: DVec3::new(0.8, 0.8, 0.8),
+        fuzz: 0.3,
     };
     let right = Metal {
         albedo: DVec3::new(0.8, 0.6, 0.2),
+        fuzz: 1.0,
     };
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);

@@ -86,11 +86,13 @@ impl Material for Lambertian {
 #[derive(Debug, Clone)]
 pub struct Metal {
     pub albedo: DVec3,
+    pub fuzz: f64,
 }
 
 impl Material for Metal {
     fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<Scatter> {
-        let reflected = reflect(ray.direction.normalize(), hit.normal);
+        let reflected = reflect(ray.direction.normalize(), hit.normal)
+            + self.fuzz * random_in_unit_sphere(&mut rand::thread_rng());
         if reflected.dot(hit.normal) > 0.0 {
             Some(Scatter {
                 ray: Ray {
