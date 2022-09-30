@@ -17,6 +17,17 @@ fn ray_color(ray: &Ray) -> Vec3 {
     (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
 }
 
+fn hit_sphere(center: &Vec3, radius: f32, ray: &Ray) -> bool {
+    let center_to_origin = ray.origin - *center;
+
+    let a = ray.direction.dot(ray.direction);
+    let b = 2.0 * ray.direction.dot(center_to_origin);
+    let c = center_to_origin.dot(center_to_origin) - radius * radius;
+
+    let discriminant = b * b - 4.0 * a * c;
+    discriminant > 0.0
+}
+
 fn main() -> anyhow::Result<()> {
     let image_aspect = 16.0 / 9.0;
     let image_height = 400;
@@ -25,6 +36,9 @@ fn main() -> anyhow::Result<()> {
     let viewport_height = 2.0;
     let viewport_width = viewport_height * image_aspect;
     let focal_length = 1.0;
+
+    let sphere_center = Vec3::new(0.0, 0.0, -1.0);
+    let sphere_radius = 0.5;
 
     let eye = Vec3::ZERO;
     let horizontal = viewport_width * Vec3::X;
@@ -47,7 +61,11 @@ fn main() -> anyhow::Result<()> {
             };
 
             let pixel = image.pixel_mut(x, y);
-            *pixel = ray_color(&ray).into();
+            if hit_sphere(&sphere_center, sphere_radius, &ray) {
+                *pixel = Pixel::rgb(1.0, 0.0, 0.0);
+            } else {
+                *pixel = ray_color(&ray).into();
+            }
         }
     }
     eprintln!();
