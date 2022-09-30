@@ -16,7 +16,7 @@ use crate::{
     camera::Camera,
     hittable::{Hittable, Sphere, World},
     image::{Image, Pixel},
-    material::{Lambertian, Metal},
+    material::{Dielectric, Lambertian, Metal},
     ray::Ray,
 };
 
@@ -51,13 +51,8 @@ fn main() -> anyhow::Result<()> {
     let ground = Lambertian {
         albedo: DVec3::new(0.8, 0.8, 0.0),
     };
-    let center = Lambertian {
-        albedo: DVec3::new(0.7, 0.3, 0.3),
-    };
-    let left = Metal {
-        albedo: DVec3::new(0.8, 0.8, 0.8),
-        fuzz: 0.3,
-    };
+    let center = Dielectric { ir: 1.5 };
+    let left = Dielectric { ir: 1.5 };
     let right = Metal {
         albedo: DVec3::new(0.8, 0.6, 0.2),
         fuzz: 1.0,

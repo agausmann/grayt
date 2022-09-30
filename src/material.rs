@@ -46,6 +46,13 @@ fn reflect(incident: DVec3, normal: DVec3) -> DVec3 {
     incident - 2.0 * incident.dot(normal) * normal
 }
 
+fn refract(incident: DVec3, normal: DVec3, ir_ratio: f64) -> DVec3 {
+    let cos = normal.dot(-incident).min(1.0);
+    let r_perp = ir_ratio * (incident + cos * normal);
+    let r_par = -(1.0 - r_perp.length_squared()).abs().sqrt() * normal;
+    r_perp + r_par
+}
+
 pub struct Scatter {
     pub ray: Ray,
     pub attenuation: DVec3,
@@ -104,5 +111,27 @@ impl Material for Metal {
         } else {
             None
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Dielectric {
+    pub ir: f64,
+}
+
+impl Material for Dielectric {
+    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<Scatter> {
+        let ir_ratio = if hit.is_front_face {
+            1.0 / self.ir
+        } else {
+            self.ir
+        };
+        Some(Scatter {
+            ray: Ray {
+                origin: hit.point,
+                direction: refract(ray.direction.normalize(), hit.normal, ir_ratio),
+            },
+            attenuation: DVec3::new(1.0, 1.0, 1.0),
+        })
     }
 }
