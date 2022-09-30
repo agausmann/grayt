@@ -56,7 +56,7 @@ fn ray_color<R: Rng>(ray: &Ray, world: &World, rng: &mut R, depth: u32) -> DVec3
             0.5 * ray_color(
                 &Ray {
                     origin: hit.point,
-                    direction: random_on_hemisphere(rng, hit.normal),
+                    direction: hit.normal + random_on_unit_sphere(rng),
                 },
                 world,
                 rng,
