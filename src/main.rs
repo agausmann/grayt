@@ -20,25 +20,28 @@ use crate::{
     ray::Ray,
 };
 
-fn ray_color<R: Rng>(ray: &Ray, world: &World, rng: &mut R, depth: u32) -> DVec3 {
-    if depth == 0 {
-        return DVec3::ZERO;
-    }
-
-    match world.hit(ray, 0.001, f64::INFINITY) {
-        Some(hit) => {
-            if let Some(scatter) = hit.material.scatter(ray, &hit) {
-                scatter.attenuation * ray_color(&scatter.ray, world, rng, depth - 1)
-            } else {
-                DVec3::ZERO
+fn ray_color(ray: &Ray, world: &World, depth: u32) -> DVec3 {
+    let mut ray = ray.clone();
+    let mut color = DVec3::ONE;
+    for _ in 0..depth {
+        match world.hit(&ray, 0.001, f64::INFINITY) {
+            Some(hit) => {
+                if let Some(scatter) = hit.material.scatter(&ray, &hit) {
+                    color *= scatter.attenuation;
+                    ray = scatter.ray;
+                } else {
+                    break;
+                }
+            }
+            None => {
+                break;
             }
         }
-        None => {
-            let unit = ray.direction.normalize();
-            let t = 0.5 * (unit.y + 1.0);
-            (1.0 - t) * DVec3::new(1.0, 1.0, 1.0) + t * DVec3::new(0.5, 0.7, 1.0)
-        }
     }
+    let unit = ray.direction.normalize();
+    let t = 0.5 * (unit.y + 1.0);
+    let ambient = (1.0 - t) * DVec3::new(1.0, 1.0, 1.0) + t * DVec3::new(0.5, 0.7, 1.0);
+    ambient * color
 }
 
 fn main() -> anyhow::Result<()> {
@@ -110,7 +113,7 @@ fn main() -> anyhow::Result<()> {
                 let u = (x as f64 + du) / (image_width as f64);
                 let v = (up_y as f64 + dv) / (image_height as f64);
                 let ray = camera.get_ray(u, v);
-                sum += ray_color(&ray, &world, &mut rng, max_depth);
+                sum += ray_color(&ray, &world, max_depth);
             }
             *image.pixel_mut(x, y) = (sum / (samples_per_pixel as f64)).powf(0.5).into();
         }
