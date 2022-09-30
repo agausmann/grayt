@@ -3,7 +3,7 @@ pub mod hittable;
 pub mod image;
 pub mod ray;
 
-use glam::Vec3;
+use glam::DVec3;
 use rand::{distributions::Uniform, prelude::Distribution, Rng};
 
 use std::{
@@ -18,22 +18,22 @@ use crate::{
     ray::Ray,
 };
 
-fn random_in_unit_sphere<R: Rng>(rng: &mut R) -> Vec3 {
+fn random_in_unit_sphere<R: Rng>(rng: &mut R) -> DVec3 {
     let dist = Uniform::new_inclusive(-1.0, 1.0);
     loop {
-        let candidate = Vec3::new(dist.sample(rng), dist.sample(rng), dist.sample(rng));
+        let candidate = DVec3::new(dist.sample(rng), dist.sample(rng), dist.sample(rng));
         if candidate.length_squared() <= 1.0 {
             return candidate;
         }
     }
 }
 
-fn ray_color<R: Rng>(ray: &Ray, world: &World, rng: &mut R, depth: u32) -> Vec3 {
+fn ray_color<R: Rng>(ray: &Ray, world: &World, rng: &mut R, depth: u32) -> DVec3 {
     if depth == 0 {
-        return Vec3::ZERO;
+        return DVec3::ZERO;
     }
 
-    match world.hit(ray, 0.0, f32::INFINITY) {
+    match world.hit(ray, 0.0, f64::INFINITY) {
         Some(hit) => {
             0.5 * ray_color(
                 &Ray {
@@ -48,7 +48,7 @@ fn ray_color<R: Rng>(ray: &Ray, world: &World, rng: &mut R, depth: u32) -> Vec3 
         None => {
             let unit = ray.direction.normalize();
             let t = 0.5 * (unit.y + 1.0);
-            (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
+            (1.0 - t) * DVec3::new(1.0, 1.0, 1.0) + t * DVec3::new(0.5, 0.7, 1.0)
         }
     }
 }
@@ -56,7 +56,7 @@ fn ray_color<R: Rng>(ray: &Ray, world: &World, rng: &mut R, depth: u32) -> Vec3 
 fn main() -> anyhow::Result<()> {
     let image_aspect = 16.0 / 9.0;
     let image_height = 400;
-    let image_width = ((image_height as f32) * image_aspect) as usize;
+    let image_width = ((image_height as f64) * image_aspect) as usize;
     let samples_per_pixel = 100;
     let max_depth = 50;
 
@@ -67,11 +67,11 @@ fn main() -> anyhow::Result<()> {
     let world = World {
         objects: vec![
             Box::new(Sphere {
-                center: Vec3::new(0.0, 0.0, -1.0),
+                center: DVec3::new(0.0, 0.0, -1.0),
                 radius: 0.5,
             }),
             Box::new(Sphere {
-                center: Vec3::new(0.0, -100.5, -1.0),
+                center: DVec3::new(0.0, -100.5, -1.0),
                 radius: 100.0,
             }),
         ],
@@ -85,17 +85,17 @@ fn main() -> anyhow::Result<()> {
         io::stdout().flush()?;
 
         for x in 0..image_width {
-            let mut sum = Vec3::ZERO;
+            let mut sum = DVec3::ZERO;
             for _ in 0..samples_per_pixel {
-                let du: f32 = rng.gen();
-                let dv: f32 = rng.gen();
+                let du: f64 = rng.gen();
+                let dv: f64 = rng.gen();
 
-                let u = (x as f32 + du) / (image_width as f32);
-                let v = (up_y as f32 + dv) / (image_height as f32);
+                let u = (x as f64 + du) / (image_width as f64);
+                let v = (up_y as f64 + dv) / (image_height as f64);
                 let ray = camera.get_ray(u, v);
                 sum += ray_color(&ray, &world, &mut rng, max_depth);
             }
-            *image.pixel_mut(x, y) = (sum / (samples_per_pixel as f32)).powf(0.5).into();
+            *image.pixel_mut(x, y) = (sum / (samples_per_pixel as f64)).powf(0.5).into();
         }
     }
     eprintln!();

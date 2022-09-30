@@ -1,15 +1,15 @@
 use crate::ray::Ray;
-use glam::Vec3;
+use glam::DVec3;
 
 pub struct HitRecord {
-    pub t: f32,
-    pub point: Vec3,
-    pub normal: Vec3,
+    pub t: f64,
+    pub point: DVec3,
+    pub normal: DVec3,
     pub is_front_face: bool,
 }
 
 impl HitRecord {
-    pub fn from_outward_normal(t: f32, point: Vec3, ray: &Ray, outward_normal: Vec3) -> Self {
+    pub fn from_outward_normal(t: f64, point: DVec3, ray: &Ray, outward_normal: DVec3) -> Self {
         let is_front_face = ray.direction.dot(outward_normal) < 0.0;
         let normal = if is_front_face {
             outward_normal
@@ -26,7 +26,7 @@ impl HitRecord {
 }
 
 pub trait Hittable {
-    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
 
 pub struct World {
@@ -46,7 +46,7 @@ impl World {
 }
 
 impl Hittable for World {
-    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         self.objects
             .iter()
             .flat_map(|obj| obj.hit(ray, t_min, t_max))
@@ -60,12 +60,12 @@ impl Hittable for World {
 }
 
 pub struct Sphere {
-    pub center: Vec3,
-    pub radius: f32,
+    pub center: DVec3,
+    pub radius: f64,
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let center_to_origin = ray.origin - self.center;
 
         let a = ray.direction.length_squared();

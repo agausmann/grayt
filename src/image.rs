@@ -1,42 +1,42 @@
 use std::io::{self, Write};
 
-use glam::Vec3;
+use glam::DVec3;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Pixel {
-    pub r: f32,
-    pub g: f32,
-    pub b: f32,
+    pub r: f64,
+    pub g: f64,
+    pub b: f64,
 }
 
-impl From<[f32; 3]> for Pixel {
-    fn from([r, g, b]: [f32; 3]) -> Self {
+impl From<[f64; 3]> for Pixel {
+    fn from([r, g, b]: [f64; 3]) -> Self {
         Self { r, g, b }
     }
 }
 
-impl From<Vec3> for Pixel {
-    fn from(vec: Vec3) -> Self {
+impl From<DVec3> for Pixel {
+    fn from(vec: DVec3) -> Self {
         Pixel::rgb(vec.x, vec.y, vec.z)
     }
 }
 
-impl From<Pixel> for [f32; 3] {
+impl From<Pixel> for [f64; 3] {
     fn from(pixel: Pixel) -> Self {
         [pixel.r, pixel.g, pixel.b]
     }
 }
 
-impl From<Pixel> for Vec3 {
+impl From<Pixel> for DVec3 {
     fn from(pixel: Pixel) -> Self {
-        Vec3::new(pixel.r, pixel.g, pixel.b)
+        DVec3::new(pixel.r, pixel.g, pixel.b)
     }
 }
 
 impl Pixel {
     pub const BLACK: Self = Self::rgb(0.0, 0.0, 0.0);
 
-    pub const fn rgb(r: f32, g: f32, b: f32) -> Self {
+    pub const fn rgb(r: f64, g: f64, b: f64) -> Self {
         Self { r, g, b }
     }
 }
@@ -77,7 +77,7 @@ impl Image {
 
     pub fn write_ppm<W: Write>(&self, mut writer: W) -> io::Result<()> {
         let resolution = 255u8;
-        let fres = resolution as f32;
+        let fres = resolution as f64;
 
         let mut buffer = Vec::with_capacity(self.width() * self.height() * 3);
         for y in 0..self.height() {
