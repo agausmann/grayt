@@ -51,7 +51,7 @@ fn ray_color<R: Rng>(ray: &Ray, world: &World, rng: &mut R, depth: u32) -> DVec3
         return DVec3::ZERO;
     }
 
-    match world.hit(ray, 0.0, f64::INFINITY) {
+    match world.hit(ray, 0.001, f64::INFINITY) {
         Some(hit) => {
             0.5 * ray_color(
                 &Ray {
