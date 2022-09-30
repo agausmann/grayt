@@ -24,14 +24,14 @@ fn ray_color(ray: &Ray, world: &World, depth: u32) -> DVec3 {
     let mut ray = ray.clone();
     let mut color = DVec3::ONE;
     for _ in 0..depth {
-        match world.hit(&ray, 0.001, f64::INFINITY) {
-            Some(hit) => {
-                if let Some(scatter) = hit.material.scatter(&ray, &hit) {
-                    color *= scatter.attenuation;
-                    ray = scatter.ray;
-                } else {
-                    break;
-                }
+        let maybe_scatter = world
+            .hit(&ray, 0.001, f64::INFINITY)
+            .and_then(|hit| hit.material.scatter(&ray, &hit));
+
+        match maybe_scatter {
+            Some(scatter) => {
+                color *= scatter.attenuation;
+                ray = scatter.ray;
             }
             None => {
                 break;
