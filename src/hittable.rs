@@ -33,8 +33,39 @@ impl<'a> HitRecord<'a> {
     }
 }
 
+pub struct Aabb {
+    pub minimum: DVec3,
+    pub maximum: DVec3,
+}
+
+impl Aabb {
+    pub fn is_hit_by(&self, ray: &Ray, t_min: f64, t_max: f64) -> bool {
+        let a = (self.minimum - ray.origin) / ray.direction;
+        let b = (self.maximum - ray.origin) / ray.direction;
+        let t0 = a.min(b).max_element().max(t_min);
+        let t1 = a.max(b).min_element().min(t_max);
+        t0 < t1
+    }
+
+    pub fn union(&self, other: &Self) -> Self {
+        Self {
+            minimum: self.minimum.min(other.minimum),
+            maximum: self.maximum.max(other.maximum),
+        }
+    }
+
+    pub fn offset(&self, offset: DVec3) -> Self {
+        Self {
+            minimum: self.minimum + offset,
+            maximum: self.maximum + offset,
+        }
+    }
+}
+
 pub trait Hittable {
     fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>>;
+
+    fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb>;
 }
 
 pub struct World {
@@ -64,6 +95,15 @@ impl Hittable for World {
                     .partial_cmp(&hit2.t)
                     .expect("incomparable ray parameters")
             })
+    }
+
+    fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb> {
+        let (first, rest) = self.objects.split_first()?;
+        let mut acc = first.bounding_box(start_time, end_time)?;
+        for obj in rest {
+            acc = acc.union(&obj.bounding_box(start_time, end_time)?);
+        }
+        Some(acc)
     }
 }
 
@@ -98,6 +138,7 @@ impl<Mat: Material> Hittable for Sphere<Mat> {
 
         let point = ray.at(t);
         let outward_normal = (point - self.center) / self.radius;
+
         Some(HitRecord::from_outward_normal(
             t,
             point,
@@ -105,6 +146,13 @@ impl<Mat: Material> Hittable for Sphere<Mat> {
             outward_normal,
             &self.material,
         ))
+    }
+
+    fn bounding_box(&self, _start_time: f64, _end_time: f64) -> Option<Aabb> {
+        Some(Aabb {
+            minimum: self.center - DVec3::splat(self.radius),
+            maximum: self.center + DVec3::splat(self.radius),
+        })
     }
 }
 
@@ -125,5 +173,12 @@ impl<T: Hittable> Hittable for Moving<T> {
             point: hit.point + self.velocity * ray.time,
             ..hit
         })
+    }
+
+    fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb> {
+        let inner_box = self.inner.bounding_box(start_time, end_time)?;
+        let start_box = inner_box.offset(self.velocity * start_time);
+        let end_box = inner_box.offset(self.velocity * end_time);
+        Some(start_box.union(&end_box))
     }
 }
