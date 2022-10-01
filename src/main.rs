@@ -112,23 +112,114 @@ fn ch11() -> World {
     }
 }
 
+fn ch13() -> World {
+    let mut objects: Vec<Box<dyn Hittable>> = Vec::new();
+
+    objects.push(Box::new(Sphere {
+        center: DVec3::new(0.0, -1000.0, 0.0),
+        radius: 1000.0,
+        material: Lambertian {
+            albedo: DVec3::new(0.5, 0.5, 0.5),
+        },
+    }));
+
+    let mut rng = rand::thread_rng();
+    let keepout_center = DVec3::new(4.0, 0.2, 0.0);
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_mat = rng.gen_range(0.0..1.0);
+            let center = DVec3::new(
+                a as f64 + 0.9 * rng.gen_range(0.0..1.0),
+                0.2,
+                b as f64 + 0.9 * rng.gen_range(0.0..1.0),
+            );
+            let radius = 0.2;
+            if center.distance(keepout_center) <= 0.9 {
+                continue;
+            }
+            if choose_mat < 0.8 {
+                let material = Lambertian {
+                    albedo: DVec3::new(
+                        rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                        rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                        rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                    ),
+                };
+                objects.push(Box::new(Sphere {
+                    center,
+                    radius,
+                    material,
+                }));
+            } else if choose_mat < 0.95 {
+                let material = Metal {
+                    albedo: DVec3::new(
+                        rng.gen_range(0.5..1.0),
+                        rng.gen_range(0.5..1.0),
+                        rng.gen_range(0.5..1.0),
+                    ),
+                    fuzz: rng.gen_range(0.0..0.5),
+                };
+                objects.push(Box::new(Sphere {
+                    center,
+                    radius,
+                    material,
+                }));
+            } else {
+                let material = Dielectric { ir: 1.5 };
+                objects.push(Box::new(Sphere {
+                    center,
+                    radius,
+                    material,
+                }));
+            }
+        }
+    }
+
+    objects.push(Box::new(Sphere {
+        center: DVec3::new(0.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Dielectric { ir: 1.5 },
+    }));
+    objects.push(Box::new(Sphere {
+        center: DVec3::new(-4.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Lambertian {
+            albedo: DVec3::new(0.4, 0.2, 0.1),
+        },
+    }));
+    objects.push(Box::new(Sphere {
+        center: DVec3::new(4.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Metal {
+            albedo: DVec3::new(0.7, 0.6, 0.5),
+            fuzz: 0.0,
+        },
+    }));
+
+    World { objects }
+}
+
 fn main() -> anyhow::Result<()> {
-    let image_aspect = 16.0 / 9.0;
-    let image_height = 400;
+    let image_aspect = 3.0 / 2.0;
+    let image_height = 800;
     let image_width = ((image_height as f64) * image_aspect) as usize;
-    let samples_per_pixel = 100;
+    let samples_per_pixel = 500;
     let max_depth = 50;
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
 
     let camera = Camera::new(&CameraDescriptor {
-        origin: DVec3::new(3.0, 3.0, 2.0),
+        origin: DVec3::new(13.0, 2.0, 3.0),
+        look_at: DVec3::ZERO,
         vfov: 20.0,
-        aperture: 2.0,
+        aspect_ratio: image_aspect,
+        aperture: 0.1,
+        focus_distance: Some(10.0),
         ..Default::default()
     });
 
-    let world = ch10();
+    let world = ch13();
 
     let mut rng = rand::thread_rng();
 
