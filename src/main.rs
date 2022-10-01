@@ -57,35 +57,34 @@ fn ch10() -> World {
         albedo: DVec3::new(0.8, 0.6, 0.2),
         fuzz: 0.0,
     };
-    World {
-        objects: vec![
-            Box::new(Sphere {
-                center: DVec3::new(0.0, -100.5, -1.0),
-                radius: 100.0,
-                material: ground,
-            }),
-            Box::new(Sphere {
-                center: DVec3::new(0.0, 0.0, -1.0),
-                radius: 0.5,
-                material: center,
-            }),
-            Box::new(Sphere {
-                center: DVec3::new(-1.0, 0.0, -1.0),
-                radius: 0.5,
-                material: left.clone(),
-            }),
-            Box::new(Sphere {
-                center: DVec3::new(-1.0, 0.0, -1.0),
-                radius: -0.4,
-                material: left,
-            }),
-            Box::new(Sphere {
-                center: DVec3::new(1.0, 0.0, -1.0),
-                radius: 0.5,
-                material: right,
-            }),
-        ],
-    }
+
+    let mut world = World::new();
+    world.add(Sphere {
+        center: DVec3::new(0.0, -100.5, -1.0),
+        radius: 100.0,
+        material: ground,
+    });
+    world.add(Sphere {
+        center: DVec3::new(0.0, 0.0, -1.0),
+        radius: 0.5,
+        material: center,
+    });
+    world.add(Sphere {
+        center: DVec3::new(-1.0, 0.0, -1.0),
+        radius: 0.5,
+        material: left.clone(),
+    });
+    world.add(Sphere {
+        center: DVec3::new(-1.0, 0.0, -1.0),
+        radius: -0.4,
+        material: left,
+    });
+    world.add(Sphere {
+        center: DVec3::new(1.0, 0.0, -1.0),
+        radius: 0.5,
+        material: right,
+    });
+    world
 }
 
 fn ch11() -> World {
@@ -96,32 +95,31 @@ fn ch11() -> World {
     let right = Lambertian {
         albedo: DVec3::new(1.0, 0.0, 0.0),
     };
-    World {
-        objects: vec![
-            Box::new(Sphere {
-                center: DVec3::new(-r, 0.0, -1.0),
-                radius: r,
-                material: left,
-            }),
-            Box::new(Sphere {
-                center: DVec3::new(r, 0.0, -1.0),
-                radius: r,
-                material: right,
-            }),
-        ],
-    }
+
+    let mut world = World::new();
+    world.add(Sphere {
+        center: DVec3::new(-r, 0.0, -1.0),
+        radius: r,
+        material: left,
+    });
+    world.add(Sphere {
+        center: DVec3::new(r, 0.0, -1.0),
+        radius: r,
+        material: right,
+    });
+    world
 }
 
 fn ch13() -> World {
-    let mut objects: Vec<Box<dyn Hittable>> = Vec::new();
+    let mut world = World::new();
 
-    objects.push(Box::new(Sphere {
+    world.add(Sphere {
         center: DVec3::new(0.0, -1000.0, 0.0),
         radius: 1000.0,
         material: Lambertian {
             albedo: DVec3::new(0.5, 0.5, 0.5),
         },
-    }));
+    });
 
     let mut rng = rand::thread_rng();
     let keepout_center = DVec3::new(4.0, 0.2, 0.0);
@@ -146,11 +144,11 @@ fn ch13() -> World {
                         rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
                     ),
                 };
-                objects.push(Box::new(Sphere {
+                world.add(Sphere {
                     center,
                     radius,
                     material,
-                }));
+                });
             } else if choose_mat < 0.95 {
                 let material = Metal {
                     albedo: DVec3::new(
@@ -160,44 +158,44 @@ fn ch13() -> World {
                     ),
                     fuzz: rng.gen_range(0.0..0.5),
                 };
-                objects.push(Box::new(Sphere {
+                world.add(Sphere {
                     center,
                     radius,
                     material,
-                }));
+                });
             } else {
                 let material = Dielectric { ir: 1.5 };
-                objects.push(Box::new(Sphere {
+                world.add(Sphere {
                     center,
                     radius,
                     material,
-                }));
+                });
             }
         }
     }
 
-    objects.push(Box::new(Sphere {
+    world.add(Sphere {
         center: DVec3::new(0.0, 1.0, 0.0),
         radius: 1.0,
         material: Dielectric { ir: 1.5 },
-    }));
-    objects.push(Box::new(Sphere {
+    });
+    world.add(Sphere {
         center: DVec3::new(-4.0, 1.0, 0.0),
         radius: 1.0,
         material: Lambertian {
             albedo: DVec3::new(0.4, 0.2, 0.1),
         },
-    }));
-    objects.push(Box::new(Sphere {
+    });
+    world.add(Sphere {
         center: DVec3::new(4.0, 1.0, 0.0),
         radius: 1.0,
         material: Metal {
             albedo: DVec3::new(0.7, 0.6, 0.5),
             fuzz: 0.0,
         },
-    }));
+    });
 
-    World { objects }
+    world
 }
 
 fn main() -> anyhow::Result<()> {
