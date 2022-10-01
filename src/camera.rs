@@ -7,6 +7,8 @@ pub struct CameraDescriptor {
     pub vfov: f64,
     pub aspect_ratio: f64,
     pub origin: DVec3,
+    pub look_at: DVec3,
+    pub vup: DVec3,
 }
 
 impl Default for CameraDescriptor {
@@ -15,6 +17,8 @@ impl Default for CameraDescriptor {
             vfov: 90.0,
             aspect_ratio: 16.0 / 9.0,
             origin: DVec3::ZERO,
+            look_at: DVec3::NEG_Z,
+            vup: DVec3::Y,
         }
     }
 }
@@ -34,12 +38,14 @@ impl Camera {
 
         let viewport_height = 2.0 * h;
         let viewport_width = desc.aspect_ratio * viewport_height;
-        let focal_length = 1.0;
 
-        let horizontal = viewport_width * DVec3::X;
-        let vertical = viewport_height * DVec3::Y;
-        let outward = focal_length * DVec3::Z;
-        let lower_left = -(horizontal + vertical) / 2.0 - outward;
+        let w = (desc.origin - desc.look_at).normalize();
+        let u = desc.vup.cross(w).normalize();
+        let v = w.cross(u);
+
+        let horizontal = viewport_width * u;
+        let vertical = viewport_height * v;
+        let lower_left = -(horizontal + vertical) / 2.0 - w;
 
         Self {
             origin,

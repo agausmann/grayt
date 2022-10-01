@@ -14,7 +14,7 @@ use std::{
 };
 
 use crate::{
-    camera::Camera,
+    camera::{Camera, CameraDescriptor},
     hittable::{Hittable, Sphere, World},
     image::{Image, Pixel},
     material::{Dielectric, Lambertian, Metal},
@@ -121,9 +121,13 @@ fn main() -> anyhow::Result<()> {
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
 
-    let camera = Camera::new(&Default::default());
+    let camera = Camera::new(&CameraDescriptor {
+        origin: DVec3::new(-2.0, 2.0, 1.0),
+        vfov: 20.0,
+        ..Default::default()
+    });
 
-    let world = ch11();
+    let world = ch10();
 
     let mut rng = rand::thread_rng();
 
