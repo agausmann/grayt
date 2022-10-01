@@ -107,3 +107,23 @@ impl<Mat: Material> Hittable for Sphere<Mat> {
         ))
     }
 }
+
+/// Encapsulates a hittable in a moving reference frame with the given velocity.
+pub struct Moving<T> {
+    pub velocity: DVec3,
+    pub inner: T,
+}
+
+impl<T: Hittable> Hittable for Moving<T> {
+    fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>> {
+        let inner_ray = Ray {
+            origin: ray.origin - self.velocity * ray.time,
+            ..*ray
+        };
+        let hit = self.inner.hit(&inner_ray, t_min, t_max)?;
+        Some(HitRecord {
+            point: hit.point + self.velocity * ray.time,
+            ..hit
+        })
+    }
+}

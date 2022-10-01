@@ -5,6 +5,7 @@ pub mod material;
 pub mod ray;
 
 use glam::DVec3;
+use hittable::Moving;
 use rand::Rng;
 
 use std::{
@@ -136,6 +137,7 @@ fn ch13() -> World {
             if center.distance(keepout_center) <= 0.9 {
                 continue;
             }
+
             if choose_mat < 0.8 {
                 let material = Lambertian {
                     albedo: DVec3::new(
@@ -144,10 +146,14 @@ fn ch13() -> World {
                         rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
                     ),
                 };
-                world.add(Sphere {
-                    center,
-                    radius,
-                    material,
+                let velocity = DVec3::new(0.0, rng.gen_range(0.0..0.5), 0.0);
+                world.add(Moving {
+                    velocity,
+                    inner: Sphere {
+                        center,
+                        radius,
+                        material,
+                    },
                 });
             } else if choose_mat < 0.95 {
                 let material = Metal {
@@ -199,10 +205,10 @@ fn ch13() -> World {
 }
 
 fn main() -> anyhow::Result<()> {
-    let image_aspect = 3.0 / 2.0;
-    let image_height = 800;
+    let image_aspect = 16.0 / 9.0;
+    let image_height = 400;
     let image_width = ((image_height as f64) * image_aspect) as usize;
-    let samples_per_pixel = 500;
+    let samples_per_pixel = 100;
     let max_depth = 50;
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
@@ -214,6 +220,7 @@ fn main() -> anyhow::Result<()> {
         aspect_ratio: image_aspect,
         aperture: 0.1,
         focus_distance: Some(10.0),
+        shutter_time: 1.0,
         ..Default::default()
     });
 

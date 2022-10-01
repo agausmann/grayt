@@ -80,7 +80,7 @@ pub struct Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _ray: &Ray, hit: &HitRecord) -> Option<Scatter> {
+    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<Scatter> {
         let mut direction = hit.normal + random_on_unit_sphere(&mut rand::thread_rng());
         if is_near_zero(direction) {
             direction = hit.normal;
@@ -90,6 +90,7 @@ impl Material for Lambertian {
             ray: Ray {
                 origin: hit.point,
                 direction,
+                ..*ray
             },
             attenuation: self.albedo,
         })
@@ -111,6 +112,7 @@ impl Material for Metal {
                 ray: Ray {
                     origin: hit.point,
                     direction: reflected,
+                    ..*ray
                 },
                 attenuation: self.albedo,
             })
@@ -148,6 +150,7 @@ impl Material for Dielectric {
             ray: Ray {
                 origin: hit.point,
                 direction,
+                ..*ray
             },
             attenuation: DVec3::new(1.0, 1.0, 1.0),
         })

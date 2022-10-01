@@ -25,6 +25,7 @@ pub struct CameraDescriptor {
     pub vup: DVec3,
     pub aperture: f64,
     pub focus_distance: Option<f64>,
+    pub shutter_time: f64,
 }
 
 impl Default for CameraDescriptor {
@@ -37,6 +38,7 @@ impl Default for CameraDescriptor {
             vup: DVec3::Y,
             aperture: 0.0,
             focus_distance: None,
+            shutter_time: 0.0,
         }
     }
 }
@@ -49,6 +51,7 @@ pub struct Camera {
     u: DVec3,
     v: DVec3,
     lens_radius: f64,
+    shutter_time: f64,
 }
 
 impl Camera {
@@ -73,6 +76,7 @@ impl Camera {
         let outward = focus_distance * w;
         let lower_left = -(horizontal + vertical) / 2.0 - outward;
         let lens_radius = desc.aperture / 2.0;
+        let shutter_time = desc.shutter_time;
 
         Self {
             origin,
@@ -82,6 +86,7 @@ impl Camera {
             u,
             v,
             lens_radius,
+            shutter_time,
         }
     }
 
@@ -93,6 +98,7 @@ impl Camera {
         Ray {
             origin: self.origin + offset,
             direction: self.lower_left + u * self.horizontal + v * self.vertical - offset,
+            time: rng.gen_range(0.0..=self.shutter_time),
         }
     }
 }
