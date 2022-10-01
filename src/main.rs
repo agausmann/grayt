@@ -8,6 +8,7 @@ use glam::DVec3;
 use rand::Rng;
 
 use std::{
+    f64::consts as f64,
     fs::File,
     io::{self, Write},
 };
@@ -44,13 +45,7 @@ fn ray_color(ray: &Ray, world: &World, depth: u32) -> DVec3 {
     ambient * color
 }
 
-fn main() -> anyhow::Result<()> {
-    let image_aspect = 16.0 / 9.0;
-    let image_height = 400;
-    let image_width = ((image_height as f64) * image_aspect) as usize;
-    let samples_per_pixel = 100;
-    let max_depth = 50;
-
+fn ch10() -> World {
     let ground = Lambertian {
         albedo: DVec3::new(0.8, 0.8, 0.0),
     };
@@ -62,12 +57,7 @@ fn main() -> anyhow::Result<()> {
         albedo: DVec3::new(0.8, 0.6, 0.2),
         fuzz: 0.0,
     };
-
-    let mut image = Image::new(image_width, image_height, Pixel::BLACK);
-
-    let camera = Camera::new(&Default::default());
-
-    let world = World {
+    World {
         objects: vec![
             Box::new(Sphere {
                 center: DVec3::new(0.0, -100.5, -1.0),
@@ -95,7 +85,45 @@ fn main() -> anyhow::Result<()> {
                 material: right,
             }),
         ],
+    }
+}
+
+fn ch11() -> World {
+    let r = (f64::PI / 4.0).cos();
+    let left = Lambertian {
+        albedo: DVec3::new(0.0, 0.0, 1.0),
     };
+    let right = Lambertian {
+        albedo: DVec3::new(1.0, 0.0, 0.0),
+    };
+    World {
+        objects: vec![
+            Box::new(Sphere {
+                center: DVec3::new(-r, 0.0, -1.0),
+                radius: r,
+                material: left,
+            }),
+            Box::new(Sphere {
+                center: DVec3::new(r, 0.0, -1.0),
+                radius: r,
+                material: right,
+            }),
+        ],
+    }
+}
+
+fn main() -> anyhow::Result<()> {
+    let image_aspect = 16.0 / 9.0;
+    let image_height = 400;
+    let image_width = ((image_height as f64) * image_aspect) as usize;
+    let samples_per_pixel = 100;
+    let max_depth = 50;
+
+    let mut image = Image::new(image_width, image_height, Pixel::BLACK);
+
+    let camera = Camera::new(&Default::default());
+
+    let world = ch11();
 
     let mut rng = rand::thread_rng();
 

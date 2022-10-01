@@ -4,19 +4,16 @@ use crate::ray::Ray;
 
 #[derive(Debug, Clone)]
 pub struct CameraDescriptor {
-    pub viewport_width: f64,
-    pub viewport_height: f64,
-    pub focal_length: f64,
+    pub vfov: f64,
+    pub aspect_ratio: f64,
     pub origin: DVec3,
 }
 
 impl Default for CameraDescriptor {
     fn default() -> Self {
-        let aspect_ratio = 16.0 / 9.0;
         Self {
-            viewport_height: 2.0,
-            viewport_width: 2.0 * aspect_ratio,
-            focal_length: 1.0,
+            vfov: 90.0,
+            aspect_ratio: 16.0 / 9.0,
             origin: DVec3::ZERO,
         }
     }
@@ -32,9 +29,16 @@ pub struct Camera {
 impl Camera {
     pub fn new(desc: &CameraDescriptor) -> Self {
         let origin = desc.origin;
-        let horizontal = desc.viewport_width * DVec3::X;
-        let vertical = desc.viewport_height * DVec3::Y;
-        let outward = desc.focal_length * DVec3::Z;
+        let theta = desc.vfov.to_radians();
+        let h = (theta / 2.0).tan();
+
+        let viewport_height = 2.0 * h;
+        let viewport_width = desc.aspect_ratio * viewport_height;
+        let focal_length = 1.0;
+
+        let horizontal = viewport_width * DVec3::X;
+        let vertical = viewport_height * DVec3::Y;
+        let outward = focal_length * DVec3::Z;
         let lower_left = -(horizontal + vertical) / 2.0 - outward;
 
         Self {
