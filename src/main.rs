@@ -122,8 +122,9 @@ fn main() -> anyhow::Result<()> {
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
 
     let camera = Camera::new(&CameraDescriptor {
-        origin: DVec3::new(-2.0, 2.0, 1.0),
+        origin: DVec3::new(3.0, 3.0, 2.0),
         vfov: 20.0,
+        aperture: 2.0,
         ..Default::default()
     });
 
