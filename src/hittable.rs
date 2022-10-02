@@ -1,7 +1,7 @@
-use std::{fmt::Debug, sync::Arc};
+use std::{f64::consts as f64, fmt::Debug, sync::Arc};
 
 use crate::{material::Material, ray::Ray};
-use glam::DVec3;
+use glam::{DVec2, DVec3};
 use rand::Rng;
 
 #[derive(Debug, Clone)]
@@ -9,6 +9,7 @@ pub struct HitRecord<'a> {
     pub t: f64,
     pub point: DVec3,
     pub normal: DVec3,
+    pub uv: DVec2,
     pub face: Face,
     pub material: &'a dyn Material,
 }
@@ -110,6 +111,14 @@ pub struct Sphere<Mat> {
     pub material: Mat,
 }
 
+impl<Mat: Material> Sphere<Mat> {
+    fn get_uv(&self, point: DVec3) -> DVec2 {
+        let latitude = (-point.y).acos();
+        let longitude = (-point.z).atan2(point.x) + f64::PI;
+        DVec2::new(longitude / f64::TAU, latitude / f64::PI)
+    }
+}
+
 impl<Mat: Material> Hittable for Sphere<Mat> {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let center_to_origin = ray.origin - self.center;
@@ -136,11 +145,13 @@ impl<Mat: Material> Hittable for Sphere<Mat> {
         let point = ray.at(t);
         let outward_normal = (point - self.center) / self.radius;
         let (normal, face) = compute_face_normal(ray, outward_normal);
+        let uv = self.get_uv(outward_normal);
 
         Some(HitRecord {
             t,
             point,
             normal,
+            uv,
             face,
             material: &self.material,
         })

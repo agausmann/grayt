@@ -9,6 +9,7 @@ use std::fmt::Debug;
 use crate::{
     hittable::{Face, HitRecord},
     ray::Ray,
+    texture::Texture,
 };
 
 #[allow(dead_code)]
@@ -80,11 +81,11 @@ impl<M: Material> Material for &M {
 }
 
 #[derive(Debug, Clone)]
-pub struct Lambertian {
-    pub albedo: DVec3,
+pub struct Lambertian<Albedo> {
+    pub albedo: Albedo,
 }
 
-impl Material for Lambertian {
+impl<Albedo: Texture> Material for Lambertian<Albedo> {
     fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<Scatter> {
         let mut direction = hit.normal + random_on_unit_sphere(&mut rand::thread_rng());
         if is_near_zero(direction) {
@@ -97,7 +98,7 @@ impl Material for Lambertian {
                 direction,
                 ..*ray
             },
-            attenuation: self.albedo,
+            attenuation: self.albedo.value(hit.uv, hit.point),
         })
     }
 }

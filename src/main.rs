@@ -3,10 +3,12 @@ pub mod hittable;
 pub mod image;
 pub mod material;
 pub mod ray;
+pub mod texture;
 
 use glam::DVec3;
 use hittable::{BvhNode, Moving};
 use rand::Rng;
+use texture::{Checker, Solid};
 
 use std::{
     f64::consts as f64,
@@ -49,10 +51,14 @@ fn ray_color(ray: &Ray, world: &World, depth: u32) -> DVec3 {
 
 fn ch10() -> World {
     let ground = Lambertian {
-        albedo: DVec3::new(0.8, 0.8, 0.0),
+        albedo: Solid {
+            color: DVec3::new(0.8, 0.8, 0.0),
+        },
     };
     let center = Lambertian {
-        albedo: DVec3::new(0.1, 0.2, 0.5),
+        albedo: Solid {
+            color: DVec3::new(0.1, 0.2, 0.5),
+        },
     };
     let left = Dielectric { ir: 1.5 };
     let right = Metal {
@@ -92,10 +98,14 @@ fn ch10() -> World {
 fn ch11() -> World {
     let r = (f64::PI / 4.0).cos();
     let left = Lambertian {
-        albedo: DVec3::new(0.0, 0.0, 1.0),
+        albedo: Solid {
+            color: DVec3::new(0.0, 0.0, 1.0),
+        },
     };
     let right = Lambertian {
-        albedo: DVec3::new(1.0, 0.0, 0.0),
+        albedo: Solid {
+            color: DVec3::new(1.0, 0.0, 0.0),
+        },
     };
 
     let mut world = World::new();
@@ -119,7 +129,9 @@ fn ch13() -> World {
         center: DVec3::new(0.0, -1000.0, 0.0),
         radius: 1000.0,
         material: Lambertian {
-            albedo: DVec3::new(0.5, 0.5, 0.5),
+            albedo: Solid {
+                color: DVec3::new(0.5, 0.5, 0.5),
+            },
         },
     });
 
@@ -141,11 +153,13 @@ fn ch13() -> World {
 
             if choose_mat < 0.8 {
                 let material = Lambertian {
-                    albedo: DVec3::new(
-                        rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                        rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                        rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                    ),
+                    albedo: Solid {
+                        color: DVec3::new(
+                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                        ),
+                    },
                 };
                 let velocity = DVec3::new(0.0, rng.gen_range(0.0..0.5), 0.0);
                 world.add(Moving {
@@ -190,7 +204,9 @@ fn ch13() -> World {
         center: DVec3::new(-4.0, 1.0, 0.0),
         radius: 1.0,
         material: Lambertian {
-            albedo: DVec3::new(0.4, 0.2, 0.1),
+            albedo: Solid {
+                color: DVec3::new(0.4, 0.2, 0.1),
+            },
         },
     });
     world.add(Sphere {
@@ -213,7 +229,14 @@ fn ch13_bvh(start_time: f64, end_time: f64) -> World {
         center: DVec3::new(0.0, -1000.0, 0.0),
         radius: 1000.0,
         material: Lambertian {
-            albedo: DVec3::new(0.5, 0.5, 0.5),
+            albedo: Checker {
+                odd: Solid {
+                    color: DVec3::new(0.2, 0.3, 0.1),
+                },
+                even: Solid {
+                    color: DVec3::new(0.9, 0.9, 0.9),
+                },
+            },
         },
     }));
 
@@ -235,11 +258,13 @@ fn ch13_bvh(start_time: f64, end_time: f64) -> World {
 
             if choose_mat < 0.8 {
                 let material = Lambertian {
-                    albedo: DVec3::new(
-                        rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                        rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                        rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                    ),
+                    albedo: Solid {
+                        color: DVec3::new(
+                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                        ),
+                    },
                 };
                 let velocity = DVec3::new(0.0, rng.gen_range(0.0..0.5), 0.0);
                 objects.push(Arc::new(Moving {
@@ -284,7 +309,9 @@ fn ch13_bvh(start_time: f64, end_time: f64) -> World {
         center: DVec3::new(-4.0, 1.0, 0.0),
         radius: 1.0,
         material: Lambertian {
-            albedo: DVec3::new(0.4, 0.2, 0.1),
+            albedo: Solid {
+                color: DVec3::new(0.4, 0.2, 0.1),
+            },
         },
     }));
     objects.push(Arc::new(Sphere {
