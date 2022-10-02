@@ -324,7 +324,6 @@ fn main() -> anyhow::Result<()> {
     let camera = Camera::new(&camera_desc);
 
     let world = ch13_bvh(0.0, camera_desc.shutter_time);
-
     let mut rng = rand::thread_rng();
 
     for y in 0..image_height {

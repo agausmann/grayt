@@ -1,9 +1,10 @@
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 use crate::{material::Material, ray::Ray};
 use glam::DVec3;
 use rand::Rng;
 
+#[derive(Debug, Clone)]
 pub struct HitRecord<'a> {
     pub t: f64,
     pub point: DVec3,
@@ -66,12 +67,13 @@ impl Aabb {
     }
 }
 
-pub trait Hittable {
+pub trait Hittable: Debug {
     fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>>;
 
     fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb>;
 }
 
+#[derive(Debug)]
 pub struct World {
     pub objects: Vec<Box<dyn Hittable>>,
 }
@@ -111,6 +113,7 @@ impl Hittable for World {
     }
 }
 
+#[derive(Debug)]
 pub struct Sphere<Mat> {
     pub center: DVec3,
     pub radius: f64,
@@ -161,6 +164,7 @@ impl<Mat: Material> Hittable for Sphere<Mat> {
 }
 
 /// Encapsulates a hittable in a moving reference frame with the given velocity.
+#[derive(Debug)]
 pub struct Moving<T> {
     pub velocity: DVec3,
     pub inner: T,
@@ -187,6 +191,7 @@ impl<T: Hittable> Hittable for Moving<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct BvhNode {
     left: Arc<dyn Hittable>,
     right: Arc<dyn Hittable>,

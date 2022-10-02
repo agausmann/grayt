@@ -4,6 +4,8 @@ use rand::{
     Rng,
 };
 
+use std::fmt::Debug;
+
 use crate::{hittable::HitRecord, ray::Ray};
 
 #[allow(dead_code)]
@@ -64,7 +66,7 @@ pub struct Scatter {
     pub attenuation: DVec3,
 }
 
-pub trait Material {
+pub trait Material: Debug {
     fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<Scatter>;
 }
 
