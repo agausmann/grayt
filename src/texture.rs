@@ -1,8 +1,20 @@
 use glam::{DVec2, DVec3};
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 pub trait Texture: Debug {
     fn value(&self, uv: DVec2, point: DVec3) -> DVec3;
+}
+
+impl<T: Texture> Texture for &T {
+    fn value(&self, uv: DVec2, point: DVec3) -> DVec3 {
+        T::value(*self, uv, point)
+    }
+}
+
+impl<T: Texture> Texture for Arc<T> {
+    fn value(&self, uv: DVec2, point: DVec3) -> DVec3 {
+        T::value(&*self, uv, point)
+    }
 }
 
 #[derive(Debug, Clone)]

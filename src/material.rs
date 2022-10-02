@@ -4,7 +4,7 @@ use rand::{
     Rng,
 };
 
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use crate::{
     hittable::{Face, HitRecord},
@@ -77,6 +77,12 @@ pub trait Material: Debug {
 impl<M: Material> Material for &M {
     fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<Scatter> {
         M::scatter(*self, ray, hit)
+    }
+}
+
+impl<M: Material> Material for Arc<M> {
+    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<Scatter> {
+        M::scatter(&*self, ray, hit)
     }
 }
 

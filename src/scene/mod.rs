@@ -1,4 +1,5 @@
 pub mod random_scene;
+pub mod two_spheres;
 
 use crate::{camera::Camera, hittable::World};
 

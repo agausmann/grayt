@@ -19,7 +19,7 @@ use crate::{
     hittable::{Hittable, World},
     image::{Image, Pixel},
     ray::Ray,
-    scene::{random_scene, Scene},
+    scene::Scene,
 };
 
 fn main() -> anyhow::Result<()> {
@@ -31,7 +31,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
 
-    let Scene { world, camera } = random_scene::build(image_aspect);
+    let Scene { world, camera } = scene::two_spheres::build(image_aspect);
 
     let mut rng = rand::thread_rng();
 
