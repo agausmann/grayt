@@ -4,7 +4,7 @@ use crate::{material::Material, ray::Ray};
 use glam::{DVec2, DVec3};
 use rand::Rng;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct HitRecord<'a> {
     pub t: f64,
     pub point: DVec3,
@@ -58,13 +58,12 @@ impl Aabb {
     }
 }
 
-pub trait Hittable: Debug {
+pub trait Hittable {
     fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>>;
 
     fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb>;
 }
 
-#[derive(Debug)]
 pub struct World {
     pub objects: Vec<Box<dyn Hittable>>,
 }
@@ -113,7 +112,7 @@ pub struct Sphere<Mat> {
 
 impl<Mat: Material> Sphere<Mat> {
     fn get_uv(&self, point: DVec3) -> DVec2 {
-        let latitude = (-point.y).acos();
+        let latitude = point.y.acos();
         let longitude = (-point.z).atan2(point.x) + f64::PI;
         DVec2::new(longitude / f64::TAU, latitude / f64::PI)
     }
@@ -193,7 +192,6 @@ impl<T: Hittable> Hittable for Moving<T> {
     }
 }
 
-#[derive(Debug)]
 pub struct BvhNode {
     left: Arc<dyn Hittable>,
     right: Arc<dyn Hittable>,

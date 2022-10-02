@@ -70,7 +70,7 @@ pub struct Scatter {
     pub attenuation: DVec3,
 }
 
-pub trait Material: Debug {
+pub trait Material {
     fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<Scatter>;
 }
 

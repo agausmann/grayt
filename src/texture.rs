@@ -1,10 +1,12 @@
-use glam::{DVec2, DVec3};
+use ::image::{GenericImageView, Pixel, Primitive, Rgb};
+use glam::{DVec2, DVec3, UVec2};
+use num_traits::ToPrimitive;
 use rand::Rng;
 use std::{fmt::Debug, sync::Arc};
 
 use crate::perlin::Perlin;
 
-pub trait Texture: Debug {
+pub trait Texture {
     fn value(&self, uv: DVec2, point: DVec3) -> DVec3;
 }
 
@@ -74,5 +76,32 @@ impl Texture for Noise {
         // DVec3::splat(
         //     0.5 * (1.0 + (self.scale * point.z + 10.0 * self.perlin.turbulence(point, 7)).sin()),
         // )
+    }
+}
+
+pub struct Image<I> {
+    pub image: I,
+}
+
+impl<I: GenericImageView> Texture for Image<I> {
+    fn value(&self, uv: DVec2, _point: DVec3) -> DVec3 {
+        let dims = UVec2::from(self.image.dimensions());
+        let pixel_coordinate = (uv * dims.as_dvec2())
+            .clamp(DVec2::ZERO, (dims - 1).as_dvec2())
+            .as_uvec2();
+        let pixel = self.image.get_pixel(pixel_coordinate.x, pixel_coordinate.y);
+
+        // TODO non-linear color spaces
+        let Rgb([r, g, b]) = pixel.to_rgb();
+        let r = r.to_f64().unwrap();
+        let g = g.to_f64().unwrap();
+        let b = b.to_f64().unwrap();
+        let min = <I::Pixel as Pixel>::Subpixel::DEFAULT_MIN_VALUE
+            .to_f64()
+            .unwrap();
+        let max = <I::Pixel as Pixel>::Subpixel::DEFAULT_MAX_VALUE
+            .to_f64()
+            .unwrap();
+        (DVec3::new(r, g, b) - min) / (max - min)
     }
 }
