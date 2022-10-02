@@ -9,31 +9,21 @@ pub struct HitRecord<'a> {
     pub t: f64,
     pub point: DVec3,
     pub normal: DVec3,
-    pub is_front_face: bool,
+    pub face: Face,
     pub material: &'a dyn Material,
 }
 
-impl<'a> HitRecord<'a> {
-    pub fn from_outward_normal(
-        t: f64,
-        point: DVec3,
-        ray: &Ray,
-        outward_normal: DVec3,
-        material: &'a dyn Material,
-    ) -> Self {
-        let is_front_face = ray.direction.dot(outward_normal) < 0.0;
-        let normal = if is_front_face {
-            outward_normal
-        } else {
-            -outward_normal
-        };
-        Self {
-            t,
-            point,
-            normal,
-            is_front_face,
-            material,
-        }
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Face {
+    Front,
+    Back,
+}
+
+fn compute_face_normal(ray: &Ray, outward_normal: DVec3) -> (DVec3, Face) {
+    if ray.direction.dot(outward_normal) < 0.0 {
+        (outward_normal, Face::Front)
+    } else {
+        (-outward_normal, Face::Back)
     }
 }
 
@@ -145,14 +135,15 @@ impl<Mat: Material> Hittable for Sphere<Mat> {
 
         let point = ray.at(t);
         let outward_normal = (point - self.center) / self.radius;
+        let (normal, face) = compute_face_normal(ray, outward_normal);
 
-        Some(HitRecord::from_outward_normal(
+        Some(HitRecord {
             t,
             point,
-            ray,
-            outward_normal,
-            &self.material,
-        ))
+            normal,
+            face,
+            material: &self.material,
+        })
     }
 
     fn bounding_box(&self, _start_time: f64, _end_time: f64) -> Option<Aabb> {

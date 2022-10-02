@@ -6,7 +6,10 @@ use rand::{
 
 use std::fmt::Debug;
 
-use crate::{hittable::HitRecord, ray::Ray};
+use crate::{
+    hittable::{Face, HitRecord},
+    ray::Ray,
+};
 
 #[allow(dead_code)]
 fn random_in_unit_sphere<R: Rng>(rng: &mut R) -> DVec3 {
@@ -131,10 +134,9 @@ pub struct Dielectric {
 
 impl Material for Dielectric {
     fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<Scatter> {
-        let ir_ratio = if hit.is_front_face {
-            1.0 / self.ir
-        } else {
-            self.ir
+        let ir_ratio = match hit.face {
+            Face::Front => 1.0 / self.ir,
+            Face::Back => self.ir,
         };
 
         let unit_direction = ray.direction.normalize();
