@@ -5,13 +5,14 @@ pub mod material;
 pub mod ray;
 
 use glam::DVec3;
-use hittable::Moving;
+use hittable::{BvhNode, Moving};
 use rand::Rng;
 
 use std::{
     f64::consts as f64,
     fs::File,
     io::{self, Write},
+    sync::Arc,
 };
 
 use crate::{
@@ -204,6 +205,103 @@ fn ch13() -> World {
     world
 }
 
+// TODO merge these functions
+fn ch13_bvh(start_time: f64, end_time: f64) -> World {
+    let mut objects: Vec<Arc<dyn Hittable>> = Vec::new();
+
+    objects.push(Arc::new(Sphere {
+        center: DVec3::new(0.0, -1000.0, 0.0),
+        radius: 1000.0,
+        material: Lambertian {
+            albedo: DVec3::new(0.5, 0.5, 0.5),
+        },
+    }));
+
+    let mut rng = rand::thread_rng();
+    let keepout_center = DVec3::new(4.0, 0.2, 0.0);
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_mat = rng.gen_range(0.0..1.0);
+            let center = DVec3::new(
+                a as f64 + 0.9 * rng.gen_range(0.0..1.0),
+                0.2,
+                b as f64 + 0.9 * rng.gen_range(0.0..1.0),
+            );
+            let radius = 0.2;
+            if center.distance(keepout_center) <= 0.9 {
+                continue;
+            }
+
+            if choose_mat < 0.8 {
+                let material = Lambertian {
+                    albedo: DVec3::new(
+                        rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                        rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                        rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                    ),
+                };
+                let velocity = DVec3::new(0.0, rng.gen_range(0.0..0.5), 0.0);
+                objects.push(Arc::new(Moving {
+                    velocity,
+                    inner: Sphere {
+                        center,
+                        radius,
+                        material,
+                    },
+                }));
+            } else if choose_mat < 0.95 {
+                let material = Metal {
+                    albedo: DVec3::new(
+                        rng.gen_range(0.5..1.0),
+                        rng.gen_range(0.5..1.0),
+                        rng.gen_range(0.5..1.0),
+                    ),
+                    fuzz: rng.gen_range(0.0..0.5),
+                };
+                objects.push(Arc::new(Sphere {
+                    center,
+                    radius,
+                    material,
+                }));
+            } else {
+                let material = Dielectric { ir: 1.5 };
+                objects.push(Arc::new(Sphere {
+                    center,
+                    radius,
+                    material,
+                }));
+            }
+        }
+    }
+
+    objects.push(Arc::new(Sphere {
+        center: DVec3::new(0.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Dielectric { ir: 1.5 },
+    }));
+    objects.push(Arc::new(Sphere {
+        center: DVec3::new(-4.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Lambertian {
+            albedo: DVec3::new(0.4, 0.2, 0.1),
+        },
+    }));
+    objects.push(Arc::new(Sphere {
+        center: DVec3::new(4.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Metal {
+            albedo: DVec3::new(0.7, 0.6, 0.5),
+            fuzz: 0.0,
+        },
+    }));
+
+    let mut world = World::new();
+    world.add(BvhNode::new(&mut objects, start_time, end_time));
+
+    world
+}
+
 fn main() -> anyhow::Result<()> {
     let image_aspect = 16.0 / 9.0;
     let image_height = 400;
@@ -213,7 +311,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
 
-    let camera = Camera::new(&CameraDescriptor {
+    let camera_desc = CameraDescriptor {
         origin: DVec3::new(13.0, 2.0, 3.0),
         look_at: DVec3::ZERO,
         vfov: 20.0,
@@ -222,9 +320,10 @@ fn main() -> anyhow::Result<()> {
         focus_distance: Some(10.0),
         shutter_time: 1.0,
         ..Default::default()
-    });
+    };
+    let camera = Camera::new(&camera_desc);
 
-    let world = ch13();
+    let world = ch13_bvh(0.0, camera_desc.shutter_time);
 
     let mut rng = rand::thread_rng();
 

@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use crate::{material::Material, ray::Ray};
 use glam::DVec3;
+use rand::Rng;
 
 pub struct HitRecord<'a> {
     pub t: f64,
@@ -33,6 +36,7 @@ impl<'a> HitRecord<'a> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Aabb {
     pub minimum: DVec3,
     pub maximum: DVec3,
@@ -180,5 +184,63 @@ impl<T: Hittable> Hittable for Moving<T> {
         let start_box = inner_box.offset(self.velocity * start_time);
         let end_box = inner_box.offset(self.velocity * end_time);
         Some(start_box.union(&end_box))
+    }
+}
+
+pub struct BvhNode {
+    left: Arc<dyn Hittable>,
+    right: Arc<dyn Hittable>,
+    bounding_box: Aabb,
+}
+
+impl BvhNode {
+    pub fn new(list: &mut [Arc<dyn Hittable>], start_time: f64, end_time: f64) -> Self {
+        let axis = rand::thread_rng().gen_range(0..3);
+        list.sort_by(|obj_a, obj_b| {
+            let box_a = obj_a.bounding_box(start_time, end_time).unwrap();
+            let box_b = obj_b.bounding_box(start_time, end_time).unwrap();
+            box_a.minimum[axis].total_cmp(&box_b.minimum[axis])
+        });
+        let [left, right]: [Arc<dyn Hittable>; 2] = match list {
+            [a] => [a.clone(), a.clone()],
+            [a, b] => [a.clone(), b.clone()],
+            _ => {
+                let (a_list, b_list) = list.split_at_mut(list.len() / 2);
+                [
+                    Arc::new(BvhNode::new(a_list, start_time, end_time)),
+                    Arc::new(BvhNode::new(b_list, start_time, end_time)),
+                ]
+            }
+        };
+        let left_box = left.bounding_box(start_time, end_time).unwrap();
+        let right_box = right.bounding_box(start_time, end_time).unwrap();
+        let bounding_box = left_box.union(&right_box);
+        Self {
+            left,
+            right,
+            bounding_box,
+        }
+    }
+}
+
+impl Hittable for BvhNode {
+    fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>> {
+        if !self.bounding_box.is_hit_by(ray, t_min, t_max) {
+            return None;
+        }
+
+        let left_hit = self.left.hit(ray, t_min, t_max);
+        let upper_bound = left_hit
+            .as_ref()
+            .map(|hit| hit.t.min(t_max))
+            .unwrap_or(t_max);
+        let right_hit = self.right.hit(ray, t_min, upper_bound);
+        // Prioritize right_hit - if right_hit is Some, then it is definitely
+        // less than left_hit due to the calculated upper_bound.
+        right_hit.or(left_hit)
+    }
+
+    fn bounding_box(&self, _start_time: f64, _end_time: f64) -> Option<Aabb> {
+        Some(self.bounding_box)
     }
 }
