@@ -3,331 +3,24 @@ pub mod hittable;
 pub mod image;
 pub mod material;
 pub mod ray;
+pub mod scene;
 pub mod texture;
 
 use glam::DVec3;
-use hittable::{BvhNode, Moving};
 use rand::Rng;
-use texture::{Checker, Solid};
 
 use std::{
     f64::consts as f64,
     fs::File,
     io::{self, Write},
-    sync::Arc,
 };
 
 use crate::{
-    camera::{Camera, CameraDescriptor},
-    hittable::{Hittable, Sphere, World},
+    hittable::{Hittable, World},
     image::{Image, Pixel},
-    material::{Dielectric, Lambertian, Metal},
     ray::Ray,
+    scene::{random_scene, Scene},
 };
-
-fn ray_color(ray: &Ray, world: &World, depth: u32) -> DVec3 {
-    let mut ray = ray.clone();
-    let mut color = DVec3::ONE;
-    for _ in 0..depth {
-        let maybe_scatter = world
-            .hit(&ray, 0.001, f64::INFINITY)
-            .and_then(|hit| hit.material.scatter(&ray, &hit));
-
-        match maybe_scatter {
-            Some(scatter) => {
-                color *= scatter.attenuation;
-                ray = scatter.ray;
-            }
-            None => {
-                break;
-            }
-        }
-    }
-    let unit = ray.direction.normalize();
-    let t = 0.5 * (unit.y + 1.0);
-    let ambient = (1.0 - t) * DVec3::new(1.0, 1.0, 1.0) + t * DVec3::new(0.5, 0.7, 1.0);
-    ambient * color
-}
-
-fn ch10() -> World {
-    let ground = Lambertian {
-        albedo: Solid {
-            color: DVec3::new(0.8, 0.8, 0.0),
-        },
-    };
-    let center = Lambertian {
-        albedo: Solid {
-            color: DVec3::new(0.1, 0.2, 0.5),
-        },
-    };
-    let left = Dielectric { ir: 1.5 };
-    let right = Metal {
-        albedo: DVec3::new(0.8, 0.6, 0.2),
-        fuzz: 0.0,
-    };
-
-    let mut world = World::new();
-    world.add(Sphere {
-        center: DVec3::new(0.0, -100.5, -1.0),
-        radius: 100.0,
-        material: ground,
-    });
-    world.add(Sphere {
-        center: DVec3::new(0.0, 0.0, -1.0),
-        radius: 0.5,
-        material: center,
-    });
-    world.add(Sphere {
-        center: DVec3::new(-1.0, 0.0, -1.0),
-        radius: 0.5,
-        material: left.clone(),
-    });
-    world.add(Sphere {
-        center: DVec3::new(-1.0, 0.0, -1.0),
-        radius: -0.4,
-        material: left,
-    });
-    world.add(Sphere {
-        center: DVec3::new(1.0, 0.0, -1.0),
-        radius: 0.5,
-        material: right,
-    });
-    world
-}
-
-fn ch11() -> World {
-    let r = (f64::PI / 4.0).cos();
-    let left = Lambertian {
-        albedo: Solid {
-            color: DVec3::new(0.0, 0.0, 1.0),
-        },
-    };
-    let right = Lambertian {
-        albedo: Solid {
-            color: DVec3::new(1.0, 0.0, 0.0),
-        },
-    };
-
-    let mut world = World::new();
-    world.add(Sphere {
-        center: DVec3::new(-r, 0.0, -1.0),
-        radius: r,
-        material: left,
-    });
-    world.add(Sphere {
-        center: DVec3::new(r, 0.0, -1.0),
-        radius: r,
-        material: right,
-    });
-    world
-}
-
-fn ch13() -> World {
-    let mut world = World::new();
-
-    world.add(Sphere {
-        center: DVec3::new(0.0, -1000.0, 0.0),
-        radius: 1000.0,
-        material: Lambertian {
-            albedo: Solid {
-                color: DVec3::new(0.5, 0.5, 0.5),
-            },
-        },
-    });
-
-    let mut rng = rand::thread_rng();
-    let keepout_center = DVec3::new(4.0, 0.2, 0.0);
-
-    for a in -11..11 {
-        for b in -11..11 {
-            let choose_mat = rng.gen_range(0.0..1.0);
-            let center = DVec3::new(
-                a as f64 + 0.9 * rng.gen_range(0.0..1.0),
-                0.2,
-                b as f64 + 0.9 * rng.gen_range(0.0..1.0),
-            );
-            let radius = 0.2;
-            if center.distance(keepout_center) <= 0.9 {
-                continue;
-            }
-
-            if choose_mat < 0.8 {
-                let material = Lambertian {
-                    albedo: Solid {
-                        color: DVec3::new(
-                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                        ),
-                    },
-                };
-                let velocity = DVec3::new(0.0, rng.gen_range(0.0..0.5), 0.0);
-                world.add(Moving {
-                    velocity,
-                    inner: Sphere {
-                        center,
-                        radius,
-                        material,
-                    },
-                });
-            } else if choose_mat < 0.95 {
-                let material = Metal {
-                    albedo: DVec3::new(
-                        rng.gen_range(0.5..1.0),
-                        rng.gen_range(0.5..1.0),
-                        rng.gen_range(0.5..1.0),
-                    ),
-                    fuzz: rng.gen_range(0.0..0.5),
-                };
-                world.add(Sphere {
-                    center,
-                    radius,
-                    material,
-                });
-            } else {
-                let material = Dielectric { ir: 1.5 };
-                world.add(Sphere {
-                    center,
-                    radius,
-                    material,
-                });
-            }
-        }
-    }
-
-    world.add(Sphere {
-        center: DVec3::new(0.0, 1.0, 0.0),
-        radius: 1.0,
-        material: Dielectric { ir: 1.5 },
-    });
-    world.add(Sphere {
-        center: DVec3::new(-4.0, 1.0, 0.0),
-        radius: 1.0,
-        material: Lambertian {
-            albedo: Solid {
-                color: DVec3::new(0.4, 0.2, 0.1),
-            },
-        },
-    });
-    world.add(Sphere {
-        center: DVec3::new(4.0, 1.0, 0.0),
-        radius: 1.0,
-        material: Metal {
-            albedo: DVec3::new(0.7, 0.6, 0.5),
-            fuzz: 0.0,
-        },
-    });
-
-    world
-}
-
-// TODO merge these functions
-fn ch13_bvh(start_time: f64, end_time: f64) -> World {
-    let mut objects: Vec<Arc<dyn Hittable>> = Vec::new();
-
-    objects.push(Arc::new(Sphere {
-        center: DVec3::new(0.0, -1000.0, 0.0),
-        radius: 1000.0,
-        material: Lambertian {
-            albedo: Checker {
-                odd: Solid {
-                    color: DVec3::new(0.2, 0.3, 0.1),
-                },
-                even: Solid {
-                    color: DVec3::new(0.9, 0.9, 0.9),
-                },
-            },
-        },
-    }));
-
-    let mut rng = rand::thread_rng();
-    let keepout_center = DVec3::new(4.0, 0.2, 0.0);
-
-    for a in -11..11 {
-        for b in -11..11 {
-            let choose_mat = rng.gen_range(0.0..1.0);
-            let center = DVec3::new(
-                a as f64 + 0.9 * rng.gen_range(0.0..1.0),
-                0.2,
-                b as f64 + 0.9 * rng.gen_range(0.0..1.0),
-            );
-            let radius = 0.2;
-            if center.distance(keepout_center) <= 0.9 {
-                continue;
-            }
-
-            if choose_mat < 0.8 {
-                let material = Lambertian {
-                    albedo: Solid {
-                        color: DVec3::new(
-                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                        ),
-                    },
-                };
-                let velocity = DVec3::new(0.0, rng.gen_range(0.0..0.5), 0.0);
-                objects.push(Arc::new(Moving {
-                    velocity,
-                    inner: Sphere {
-                        center,
-                        radius,
-                        material,
-                    },
-                }));
-            } else if choose_mat < 0.95 {
-                let material = Metal {
-                    albedo: DVec3::new(
-                        rng.gen_range(0.5..1.0),
-                        rng.gen_range(0.5..1.0),
-                        rng.gen_range(0.5..1.0),
-                    ),
-                    fuzz: rng.gen_range(0.0..0.5),
-                };
-                objects.push(Arc::new(Sphere {
-                    center,
-                    radius,
-                    material,
-                }));
-            } else {
-                let material = Dielectric { ir: 1.5 };
-                objects.push(Arc::new(Sphere {
-                    center,
-                    radius,
-                    material,
-                }));
-            }
-        }
-    }
-
-    objects.push(Arc::new(Sphere {
-        center: DVec3::new(0.0, 1.0, 0.0),
-        radius: 1.0,
-        material: Dielectric { ir: 1.5 },
-    }));
-    objects.push(Arc::new(Sphere {
-        center: DVec3::new(-4.0, 1.0, 0.0),
-        radius: 1.0,
-        material: Lambertian {
-            albedo: Solid {
-                color: DVec3::new(0.4, 0.2, 0.1),
-            },
-        },
-    }));
-    objects.push(Arc::new(Sphere {
-        center: DVec3::new(4.0, 1.0, 0.0),
-        radius: 1.0,
-        material: Metal {
-            albedo: DVec3::new(0.7, 0.6, 0.5),
-            fuzz: 0.0,
-        },
-    }));
-
-    let mut world = World::new();
-    world.add(BvhNode::new(&mut objects, start_time, end_time));
-
-    world
-}
 
 fn main() -> anyhow::Result<()> {
     let image_aspect = 16.0 / 9.0;
@@ -338,19 +31,8 @@ fn main() -> anyhow::Result<()> {
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
 
-    let camera_desc = CameraDescriptor {
-        origin: DVec3::new(13.0, 2.0, 3.0),
-        look_at: DVec3::ZERO,
-        vfov: 20.0,
-        aspect_ratio: image_aspect,
-        aperture: 0.1,
-        focus_distance: Some(10.0),
-        shutter_time: 1.0,
-        ..Default::default()
-    };
-    let camera = Camera::new(&camera_desc);
+    let Scene { world, camera } = random_scene::build(image_aspect);
 
-    let world = ch13_bvh(0.0, camera_desc.shutter_time);
     let mut rng = rand::thread_rng();
 
     for y in 0..image_height {
@@ -376,4 +58,28 @@ fn main() -> anyhow::Result<()> {
 
     image.write_ppm(File::create("test.ppm")?)?;
     Ok(())
+}
+
+fn ray_color(ray: &Ray, world: &World, depth: u32) -> DVec3 {
+    let mut ray = ray.clone();
+    let mut color = DVec3::ONE;
+    for _ in 0..depth {
+        let maybe_scatter = world
+            .hit(&ray, 0.001, f64::INFINITY)
+            .and_then(|hit| hit.material.scatter(&ray, &hit));
+
+        match maybe_scatter {
+            Some(scatter) => {
+                color *= scatter.attenuation;
+                ray = scatter.ray;
+            }
+            None => {
+                break;
+            }
+        }
+    }
+    let unit = ray.direction.normalize();
+    let t = 0.5 * (unit.y + 1.0);
+    let ambient = (1.0 - t) * DVec3::new(1.0, 1.0, 1.0) + t * DVec3::new(0.5, 0.7, 1.0);
+    ambient * color
 }
