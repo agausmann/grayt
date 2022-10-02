@@ -66,6 +66,20 @@ impl Perlin {
             ^ self.perm_y[idx.y as usize]
             ^ self.perm_z[idx.z as usize]]
     }
+
+    pub fn turbulence(&self, point: DVec3, depth: usize) -> f64 {
+        let mut accum = 0.0;
+        let mut point = point;
+        let mut weight = 1.0;
+
+        for _ in 0..depth {
+            accum += weight * self.noise(point);
+            point *= 2.0;
+            weight *= 0.5;
+        }
+
+        accum.abs()
+    }
 }
 
 fn shuffle<R: Rng, T>(items: &mut [T], rng: &mut R) {
