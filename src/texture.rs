@@ -1,5 +1,8 @@
 use glam::{DVec2, DVec3};
+use rand::Rng;
 use std::{fmt::Debug, sync::Arc};
+
+use crate::perlin::Perlin;
 
 pub trait Texture: Debug {
     fn value(&self, uv: DVec2, point: DVec3) -> DVec3;
@@ -46,5 +49,26 @@ where
         } else {
             self.even.value(uv, point)
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct Noise {
+    perlin: Perlin,
+    scale: f64,
+}
+
+impl Noise {
+    pub fn new<R: Rng>(rng: &mut R, scale: f64) -> Self {
+        Self {
+            perlin: Perlin::new(rng),
+            scale,
+        }
+    }
+}
+
+impl Texture for Noise {
+    fn value(&self, _uv: DVec2, point: DVec3) -> DVec3 {
+        DVec3::splat(self.perlin.noise(point * self.scale))
     }
 }

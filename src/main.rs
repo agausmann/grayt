@@ -2,6 +2,7 @@ pub mod camera;
 pub mod hittable;
 pub mod image;
 pub mod material;
+pub mod perlin;
 pub mod ray;
 pub mod scene;
 pub mod texture;
@@ -31,7 +32,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
 
-    let Scene { world, camera } = scene::two_spheres::build(image_aspect);
+    let Scene { world, camera } = scene::two_perlin_spheres::build(image_aspect);
 
     let mut rng = rand::thread_rng();
 
