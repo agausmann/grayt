@@ -257,11 +257,11 @@ pub enum Plane {
 }
 
 pub struct Rect<Mat> {
+    pub plane: Plane,
     pub min: DVec2,
     pub max: DVec2,
     pub k: f64,
     pub material: Mat,
-    pub plane: Plane,
 }
 
 impl<Mat: Material> Hittable for Rect<Mat> {

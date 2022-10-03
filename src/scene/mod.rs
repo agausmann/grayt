@@ -1,3 +1,4 @@
+pub mod cornell_box;
 pub mod earth;
 pub mod random_scene;
 pub mod simple_light;

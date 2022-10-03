@@ -83,11 +83,19 @@ impl<M: Material> Material for &M {
     fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<Scatter> {
         M::scatter(*self, ray, hit)
     }
+
+    fn emitted(&self, uv: DVec2, point: DVec3) -> DVec3 {
+        M::emitted(*self, uv, point)
+    }
 }
 
 impl<M: Material> Material for Arc<M> {
     fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<Scatter> {
         M::scatter(&*self, ray, hit)
+    }
+
+    fn emitted(&self, uv: DVec2, point: DVec3) -> DVec3 {
+        M::emitted(&*self, uv, point)
     }
 }
 

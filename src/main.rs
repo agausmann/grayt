@@ -24,10 +24,10 @@ use crate::{
 };
 
 fn main() -> anyhow::Result<()> {
-    let image_aspect = 16.0 / 9.0;
-    let image_height = 400;
+    let image_aspect = 1.0;
+    let image_height = 600;
     let image_width = ((image_height as f64) * image_aspect) as usize;
-    let samples_per_pixel = 400;
+    let samples_per_pixel = 200;
     let max_depth = 50;
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
@@ -36,7 +36,7 @@ fn main() -> anyhow::Result<()> {
         world,
         camera,
         background,
-    } = scene::simple_light::build(image_aspect);
+    } = scene::cornell_box::build(image_aspect);
 
     let mut rng = rand::thread_rng();
 
@@ -74,7 +74,7 @@ fn ray_color(ray: &Ray, background: DVec3, world: &World, depth: u32) -> DVec3 {
             Some(x) => x,
             None => {
                 total += atten * background;
-                return total;
+                break;
             }
         };
 
@@ -86,10 +86,9 @@ fn ray_color(ray: &Ray, background: DVec3, world: &World, depth: u32) -> DVec3 {
                 ray = scatter.ray;
             }
             None => {
-                total += atten * background;
-                return total;
+                break;
             }
         }
     }
-    DVec3::ZERO
+    total
 }
