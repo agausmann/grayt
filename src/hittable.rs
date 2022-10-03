@@ -363,3 +363,79 @@ impl<Mat: Material> Hittable for Rect<Mat> {
         })
     }
 }
+
+// haha can't name anything box
+pub struct Cuboid<Mat> {
+    min: DVec3,
+    max: DVec3,
+    sides: [Rect<Mat>; 6],
+}
+
+impl<Mat> Cuboid<Mat> {
+    pub fn new(min: DVec3, max: DVec3, material: Mat) -> Self
+    where
+        Mat: Clone,
+    {
+        Self {
+            min,
+            max,
+            sides: [
+                Rect {
+                    plane: Plane::XY,
+                    min: min.xy(),
+                    max: max.xy(),
+                    k: min.z,
+                    material: material.clone(),
+                },
+                Rect {
+                    plane: Plane::XY,
+                    min: min.xy(),
+                    max: max.xy(),
+                    k: max.z,
+                    material: material.clone(),
+                },
+                Rect {
+                    plane: Plane::YZ,
+                    min: min.yz(),
+                    max: max.yz(),
+                    k: min.x,
+                    material: material.clone(),
+                },
+                Rect {
+                    plane: Plane::YZ,
+                    min: min.yz(),
+                    max: max.yz(),
+                    k: max.x,
+                    material: material.clone(),
+                },
+                Rect {
+                    plane: Plane::ZX,
+                    min: min.zx(),
+                    max: max.zx(),
+                    k: min.y,
+                    material: material.clone(),
+                },
+                Rect {
+                    plane: Plane::ZX,
+                    min: min.zx(),
+                    max: max.zx(),
+                    k: max.y,
+                    material: material,
+                },
+            ],
+        }
+    }
+}
+
+impl<Mat: Material> Hittable for Cuboid<Mat> {
+    fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>> {
+        self.sides.hit(ray, t_min, t_max)
+    }
+
+    fn bounding_box(&self, _start_time: f64, _end_time: f64) -> Option<Aabb> {
+        Some(Aabb {
+            minimum: self.min,
+            maximum: self.max,
+        })
+    }
+}
