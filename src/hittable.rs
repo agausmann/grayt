@@ -1,4 +1,4 @@
-use std::{f64::consts as f64, fmt::Debug, sync::Arc};
+use std::{f64::consts as f64, fmt::Debug, ops::Deref, sync::Arc};
 
 use crate::{material::Material, ray::Ray};
 use glam::{DVec2, DVec3, Vec3Swizzles};
@@ -87,11 +87,11 @@ impl<T: Hittable> Hittable for Box<T> {
 //FIXME why is this needed separate from Box<T>?
 impl Hittable for Box<dyn Hittable> {
     fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>> {
-        <dyn Hittable>::hit(&*self, ray, t_min, t_max)
+        self.deref().hit(ray, t_min, t_max)
     }
 
     fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb> {
-        <dyn Hittable>::bounding_box(&*self, start_time, end_time)
+        self.deref().bounding_box(start_time, end_time)
     }
 }
 
