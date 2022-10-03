@@ -250,26 +250,45 @@ impl Hittable for BvhNode {
     }
 }
 
-pub struct XYRect<Mat> {
-    pub min: DVec2,
-    pub max: DVec2,
-    pub z: f64,
-    pub material: Mat,
+pub enum Plane {
+    XY,
+    YZ,
+    ZX,
 }
 
-impl<Mat: Material> Hittable for XYRect<Mat> {
+pub struct Rect<Mat> {
+    pub min: DVec2,
+    pub max: DVec2,
+    pub k: f64,
+    pub material: Mat,
+    pub plane: Plane,
+}
+
+impl<Mat: Material> Hittable for Rect<Mat> {
     fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>> {
-        let t = (self.z - ray.origin.z) / ray.direction.z;
+        let t = match self.plane {
+            Plane::XY => (self.k - ray.origin.z) / ray.direction.z,
+            Plane::YZ => (self.k - ray.origin.x) / ray.direction.x,
+            Plane::ZX => (self.k - ray.origin.y) / ray.direction.y,
+        };
         if t < t_min || t > t_max {
             return None;
         }
         let point = ray.at(t);
-        let xy = point.xy();
+        let xy = match self.plane {
+            Plane::XY => point.xy(),
+            Plane::YZ => point.yz(),
+            Plane::ZX => point.zx(),
+        };
         if xy.cmplt(self.min).any() || xy.cmpgt(self.max).any() {
             return None;
         }
         let uv = (xy - self.min) / (self.max - self.min);
-        let outward_normal = DVec3::Z;
+        let outward_normal = match self.plane {
+            Plane::XY => DVec3::Z,
+            Plane::YZ => DVec3::X,
+            Plane::ZX => DVec3::Y,
+        };
         let (normal, face) = compute_face_normal(ray, outward_normal);
         Some(HitRecord {
             t,
@@ -281,11 +300,16 @@ impl<Mat: Material> Hittable for XYRect<Mat> {
         })
     }
 
-    fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb> {
+    fn bounding_box(&self, _start_time: f64, _end_time: f64) -> Option<Aabb> {
         let epsilon = 0.0001;
+        let swizzle = match self.plane {
+            Plane::XY => DVec3::xyz,
+            Plane::YZ => DVec3::yzx,
+            Plane::ZX => DVec3::zxy,
+        };
         Some(Aabb {
-            minimum: self.min.extend(self.z - epsilon),
-            maximum: self.max.extend(self.z + epsilon),
+            minimum: swizzle(self.min.extend(self.k - epsilon)),
+            maximum: swizzle(self.max.extend(self.k + epsilon)),
         })
     }
 }

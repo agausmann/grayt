@@ -4,7 +4,7 @@ use glam::{DVec2, DVec3};
 
 use crate::{
     camera::{Camera, CameraDescriptor},
-    hittable::{Sphere, World, XYRect},
+    hittable::{Plane, Rect, Sphere, World},
     material::{DiffuseLight, Lambertian},
     texture::{Noise, Solid},
 };
@@ -36,15 +36,16 @@ pub fn build(aspect_ratio: f64) -> Scene {
         radius: 2.0,
         material: Arc::clone(&noise),
     });
-    world.add(XYRect {
+    world.add(Rect {
         min: DVec2::new(3.0, 1.0),
         max: DVec2::new(5.0, 3.0),
-        z: -2.0,
+        k: -2.0,
         material: DiffuseLight {
             emit: Solid {
                 color: DVec3::new(4.0, 4.0, 4.0),
             },
         },
+        plane: Plane::XY,
     });
 
     Scene {
