@@ -1,4 +1,4 @@
-use glam::DVec3;
+use glam::{DVec2, DVec3};
 use rand::{
     distributions::{Distribution, Uniform},
     Rng,
@@ -72,6 +72,11 @@ pub struct Scatter {
 
 pub trait Material {
     fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<Scatter>;
+
+    fn emitted(&self, uv: DVec2, point: DVec3) -> DVec3 {
+        let _ = (uv, point);
+        DVec3::ZERO
+    }
 }
 
 impl<M: Material> Material for &M {
@@ -165,5 +170,19 @@ impl Material for Dielectric {
             },
             attenuation: DVec3::new(1.0, 1.0, 1.0),
         })
+    }
+}
+
+pub struct DiffuseLight<E> {
+    pub emit: E,
+}
+
+impl<E: Texture> Material for DiffuseLight<E> {
+    fn scatter(&self, _ray: &Ray, _hit: &HitRecord) -> Option<Scatter> {
+        None
+    }
+
+    fn emitted(&self, uv: DVec2, point: DVec3) -> DVec3 {
+        self.emit.value(uv, point)
     }
 }

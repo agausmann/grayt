@@ -1,7 +1,7 @@
 use std::{f64::consts as f64, fmt::Debug, sync::Arc};
 
 use crate::{material::Material, ray::Ray};
-use glam::{DVec2, DVec3};
+use glam::{DVec2, DVec3, Vec3Swizzles};
 use rand::Rng;
 
 #[derive(Clone)]
@@ -247,5 +247,45 @@ impl Hittable for BvhNode {
 
     fn bounding_box(&self, _start_time: f64, _end_time: f64) -> Option<Aabb> {
         Some(self.bounding_box)
+    }
+}
+
+pub struct XYRect<Mat> {
+    pub min: DVec2,
+    pub max: DVec2,
+    pub z: f64,
+    pub material: Mat,
+}
+
+impl<Mat: Material> Hittable for XYRect<Mat> {
+    fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>> {
+        let t = (self.z - ray.origin.z) / ray.direction.z;
+        if t < t_min || t > t_max {
+            return None;
+        }
+        let point = ray.at(t);
+        let xy = point.xy();
+        if xy.cmplt(self.min).any() || xy.cmpgt(self.max).any() {
+            return None;
+        }
+        let uv = (xy - self.min) / (self.max - self.min);
+        let outward_normal = DVec3::Z;
+        let (normal, face) = compute_face_normal(ray, outward_normal);
+        Some(HitRecord {
+            t,
+            point,
+            normal,
+            uv,
+            face,
+            material: &self.material,
+        })
+    }
+
+    fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb> {
+        let epsilon = 0.0001;
+        Some(Aabb {
+            minimum: self.min.extend(self.z - epsilon),
+            maximum: self.max.extend(self.z + epsilon),
+        })
     }
 }

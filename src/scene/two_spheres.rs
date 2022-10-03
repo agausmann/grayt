@@ -45,5 +45,9 @@ pub fn build(aspect_ratio: f64) -> Scene {
         material: Arc::clone(&checker),
     });
 
-    Scene { world, camera }
+    Scene {
+        world,
+        camera,
+        background: DVec3::new(0.7, 0.8, 1.0),
+    }
 }

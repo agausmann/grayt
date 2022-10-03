@@ -1,20 +1,20 @@
 use std::sync::Arc;
 
-use glam::DVec3;
+use glam::{DVec2, DVec3};
 
 use crate::{
     camera::{Camera, CameraDescriptor},
-    hittable::{Sphere, World},
-    material::Lambertian,
-    texture::Noise,
+    hittable::{Sphere, World, XYRect},
+    material::{DiffuseLight, Lambertian},
+    texture::{Noise, Solid},
 };
 
 use super::Scene;
 
 pub fn build(aspect_ratio: f64) -> Scene {
     let camera_desc = CameraDescriptor {
-        origin: DVec3::new(13.0, 2.0, 3.0),
-        look_at: DVec3::ZERO,
+        origin: DVec3::new(26.0, 3.0, 6.0),
+        look_at: DVec3::new(0.0, 2.0, 0.0),
         vfov: 20.0,
         aspect_ratio,
         ..Default::default()
@@ -36,10 +36,20 @@ pub fn build(aspect_ratio: f64) -> Scene {
         radius: 2.0,
         material: Arc::clone(&noise),
     });
+    world.add(XYRect {
+        min: DVec2::new(3.0, 1.0),
+        max: DVec2::new(5.0, 3.0),
+        z: -2.0,
+        material: DiffuseLight {
+            emit: Solid {
+                color: DVec3::new(4.0, 4.0, 4.0),
+            },
+        },
+    });
 
     Scene {
         world,
         camera,
-        background: DVec3::new(0.7, 0.8, 1.0),
+        background: DVec3::ZERO,
     }
 }

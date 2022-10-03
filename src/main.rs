@@ -27,12 +27,16 @@ fn main() -> anyhow::Result<()> {
     let image_aspect = 16.0 / 9.0;
     let image_height = 400;
     let image_width = ((image_height as f64) * image_aspect) as usize;
-    let samples_per_pixel = 100;
+    let samples_per_pixel = 400;
     let max_depth = 50;
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
 
-    let Scene { world, camera } = scene::earth::build(image_aspect);
+    let Scene {
+        world,
+        camera,
+        background,
+    } = scene::simple_light::build(image_aspect);
 
     let mut rng = rand::thread_rng();
 
@@ -50,7 +54,7 @@ fn main() -> anyhow::Result<()> {
                 let u = (x as f64 + du) / (image_width as f64);
                 let v = (up_y as f64 + dv) / (image_height as f64);
                 let ray = camera.get_ray(u, v);
-                sum += ray_color(&ray, &world, max_depth);
+                sum += ray_color(&ray, background, &world, max_depth);
             }
             *image.pixel_mut(x, y) = (sum / (samples_per_pixel as f64)).powf(0.5).into();
         }
@@ -61,26 +65,31 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn ray_color(ray: &Ray, world: &World, depth: u32) -> DVec3 {
+fn ray_color(ray: &Ray, background: DVec3, world: &World, depth: u32) -> DVec3 {
     let mut ray = ray.clone();
-    let mut color = DVec3::ONE;
+    let mut total = DVec3::ZERO;
+    let mut atten = DVec3::ONE;
     for _ in 0..depth {
-        let maybe_scatter = world
-            .hit(&ray, 0.001, f64::INFINITY)
-            .and_then(|hit| hit.material.scatter(&ray, &hit));
+        let hit = match world.hit(&ray, 0.001, f64::INFINITY) {
+            Some(x) => x,
+            None => {
+                total += atten * background;
+                return total;
+            }
+        };
 
-        match maybe_scatter {
+        total += atten * hit.material.emitted(hit.uv, hit.point);
+
+        match hit.material.scatter(&ray, &hit) {
             Some(scatter) => {
-                color *= scatter.attenuation;
+                atten *= scatter.attenuation;
                 ray = scatter.ray;
             }
             None => {
-                break;
+                total += atten * background;
+                return total;
             }
         }
     }
-    let unit = ray.direction.normalize();
-    let t = 0.5 * (unit.y + 1.0);
-    let ambient = (1.0 - t) * DVec3::new(1.0, 1.0, 1.0) + t * DVec3::new(0.5, 0.7, 1.0);
-    ambient * color
+    DVec3::ZERO
 }

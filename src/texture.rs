@@ -71,11 +71,11 @@ impl Noise {
 
 impl Texture for Noise {
     fn value(&self, _uv: DVec2, point: DVec3) -> DVec3 {
-        DVec3::splat(0.5 * (1.0 + self.perlin.noise(point * self.scale)))
+        // DVec3::splat(0.5 * (1.0 + self.perlin.noise(point * self.scale)))
         // DVec3::splat(self.perlin.turbulence(point * self.scale, 7))
-        // DVec3::splat(
-        //     0.5 * (1.0 + (self.scale * point.z + 10.0 * self.perlin.turbulence(point, 7)).sin()),
-        // )
+        DVec3::splat(
+            0.5 * (1.0 + (self.scale * point.z + 10.0 * self.perlin.turbulence(point, 7)).sin()),
+        )
     }
 }
 

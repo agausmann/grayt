@@ -128,5 +128,9 @@ pub fn build(aspect_ratio: f64) -> Scene {
     let mut world = World::new();
     world.add(BvhNode::new(&mut objects, 0.0, camera_desc.shutter_time));
 
-    Scene { world, camera }
+    Scene {
+        world,
+        camera,
+        background: DVec3::new(0.7, 0.8, 1.0),
+    }
 }
