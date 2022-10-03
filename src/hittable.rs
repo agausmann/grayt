@@ -64,6 +64,69 @@ pub trait Hittable {
     fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb>;
 }
 
+impl<T: Hittable> Hittable for &T {
+    fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>> {
+        T::hit(*self, ray, t_min, t_max)
+    }
+
+    fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb> {
+        T::bounding_box(*self, start_time, end_time)
+    }
+}
+
+impl<T: Hittable> Hittable for Box<T> {
+    fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>> {
+        T::hit(&self, ray, t_min, t_max)
+    }
+
+    fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb> {
+        T::bounding_box(&self, start_time, end_time)
+    }
+}
+
+//FIXME why is this needed separate from Box<T>?
+impl Hittable for Box<dyn Hittable> {
+    fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>> {
+        <dyn Hittable>::hit(&*self, ray, t_min, t_max)
+    }
+
+    fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb> {
+        <dyn Hittable>::bounding_box(&*self, start_time, end_time)
+    }
+}
+
+impl<T: Hittable> Hittable for Arc<T> {
+    fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>> {
+        T::hit(&self, ray, t_min, t_max)
+    }
+
+    fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb> {
+        T::bounding_box(&self, start_time, end_time)
+    }
+}
+
+impl<T: Hittable> Hittable for [T] {
+    fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>> {
+        self.iter()
+            .flat_map(|obj| obj.hit(ray, t_min, t_max))
+            .filter(|hit| hit.t.is_finite())
+            .min_by(|hit1, hit2| {
+                hit1.t
+                    .partial_cmp(&hit2.t)
+                    .expect("incomparable ray parameters")
+            })
+    }
+
+    fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb> {
+        let (first, rest) = self.split_first()?;
+        let mut acc = first.bounding_box(start_time, end_time)?;
+        for obj in rest {
+            acc = acc.union(&obj.bounding_box(start_time, end_time)?);
+        }
+        Some(acc)
+    }
+}
+
 pub struct World {
     pub objects: Vec<Box<dyn Hittable>>,
 }
@@ -82,24 +145,11 @@ impl World {
 
 impl Hittable for World {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        self.objects
-            .iter()
-            .flat_map(|obj| obj.hit(ray, t_min, t_max))
-            .filter(|hit| hit.t.is_finite())
-            .min_by(|hit1, hit2| {
-                hit1.t
-                    .partial_cmp(&hit2.t)
-                    .expect("incomparable ray parameters")
-            })
+        self.objects.hit(ray, t_min, t_max)
     }
 
     fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb> {
-        let (first, rest) = self.objects.split_first()?;
-        let mut acc = first.bounding_box(start_time, end_time)?;
-        for obj in rest {
-            acc = acc.union(&obj.bounding_box(start_time, end_time)?);
-        }
-        Some(acc)
+        self.objects.bounding_box(start_time, end_time)
     }
 }
 
