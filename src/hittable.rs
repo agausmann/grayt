@@ -447,3 +447,86 @@ impl<Mat: Material> Hittable for Cuboid<Mat> {
         })
     }
 }
+
+pub struct Translate<T> {
+    pub offset: DVec3,
+    pub inner: T,
+}
+
+impl<T: Hittable> Hittable for Translate<T> {
+    fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>> {
+        let moved_ray = Ray {
+            origin: ray.origin - self.offset,
+            ..*ray
+        };
+        self.inner
+            .hit(&moved_ray, t_min, t_max)
+            .map(|hit| HitRecord {
+                point: hit.point + self.offset,
+                ..hit
+            })
+    }
+
+    fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb> {
+        self.inner
+            .bounding_box(start_time, end_time)
+            .map(|bb| bb.offset(self.offset))
+    }
+}
+
+pub struct RotateY<T> {
+    pub radians: f64,
+    pub inner: T,
+}
+
+impl<T> RotateY<T> {
+    fn rotate_in(&self, vec: DVec3) -> DVec3 {
+        DVec3 {
+            x: self.radians.cos() * vec.x - self.radians.sin() * vec.z,
+            y: vec.y,
+            z: self.radians.sin() * vec.x + self.radians.cos() * vec.z,
+        }
+    }
+
+    fn rotate_out(&self, vec: DVec3) -> DVec3 {
+        DVec3 {
+            x: self.radians.cos() * vec.x + self.radians.sin() * vec.z,
+            y: vec.y,
+            z: -self.radians.sin() * vec.x + self.radians.cos() * vec.z,
+        }
+    }
+}
+
+impl<T: Hittable> Hittable for RotateY<T> {
+    fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>> {
+        let rotated_ray = Ray {
+            origin: self.rotate_in(ray.origin),
+            direction: self.rotate_in(ray.direction),
+            ..*ray
+        };
+        let hit = self.inner.hit(&rotated_ray, t_min, t_max)?;
+        Some(HitRecord {
+            point: self.rotate_out(hit.point),
+            normal: self.rotate_out(hit.normal),
+            ..hit
+        })
+    }
+
+    fn bounding_box(&self, start_time: f64, end_time: f64) -> Option<Aabb> {
+        let bb = self.inner.bounding_box(start_time, end_time)?;
+
+        let mut minimum = DVec3::splat(f64::INFINITY);
+        let mut maximum = DVec3::splat(-f64::INFINITY);
+        for x in [bb.minimum.x, bb.maximum.x] {
+            for y in [bb.minimum.y, bb.maximum.y] {
+                for z in [bb.minimum.z, bb.maximum.z] {
+                    let point = self.rotate_out(DVec3::new(x, y, z));
+                    minimum = minimum.min(point);
+                    maximum = maximum.max(point);
+                }
+            }
+        }
+
+        Some(Aabb { minimum, maximum })
+    }
+}

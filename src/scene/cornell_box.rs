@@ -4,7 +4,7 @@ use glam::{DVec2, DVec3};
 
 use crate::{
     camera::{Camera, CameraDescriptor},
-    hittable::{Cuboid, Plane, Rect, World},
+    hittable::{Cuboid, Plane, Rect, RotateY, Translate, World},
     material::{DiffuseLight, Lambertian},
     texture::Solid,
 };
@@ -86,16 +86,28 @@ pub fn build(aspect_ratio: f64) -> Scene {
         material: Arc::clone(&white),
     });
 
-    world.add(Cuboid::new(
-        DVec3::new(130.0, 0.0, 65.0),
-        DVec3::new(295.0, 165.0, 230.0),
-        Arc::clone(&white),
-    ));
-    world.add(Cuboid::new(
-        DVec3::new(265.0, 0.0, 295.0),
-        DVec3::new(430.0, 330.0, 460.0),
-        Arc::clone(&white),
-    ));
+    world.add(Translate {
+        offset: DVec3::new(265.0, 0.0, 295.0),
+        inner: RotateY {
+            radians: 15.0_f64.to_radians(),
+            inner: Cuboid::new(
+                DVec3::ZERO,
+                DVec3::new(165.0, 330.0, 165.0),
+                Arc::clone(&white),
+            ),
+        },
+    });
+    world.add(Translate {
+        offset: DVec3::new(130.0, 0.0, 65.0),
+        inner: RotateY {
+            radians: (-18.0_f64).to_radians(),
+            inner: Cuboid::new(
+                DVec3::ZERO,
+                DVec3::new(165.0, 165.0, 165.0),
+                Arc::clone(&white),
+            ),
+        },
+    });
 
     Scene {
         world,

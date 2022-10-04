@@ -27,7 +27,7 @@ fn main() -> anyhow::Result<()> {
     let image_aspect = 1.0;
     let image_height = 600;
     let image_width = ((image_height as f64) * image_aspect) as usize;
-    let samples_per_pixel = 200;
+    let samples_per_pixel = 400;
     let max_depth = 50;
 
     let mut image = Image::new(image_width, image_height, Pixel::BLACK);
