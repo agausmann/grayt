@@ -429,7 +429,15 @@ impl<Mat> Cuboid<Mat> {
 
 impl<Mat: Material> Hittable for Cuboid<Mat> {
     fn hit<'a>(&'a self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'a>> {
-        self.sides.hit(ray, t_min, t_max)
+        if self
+            .bounding_box(ray.time, ray.time)
+            .map(|bb| bb.is_hit_by(ray, t_min, t_max))
+            .unwrap_or(true)
+        {
+            self.sides.hit(ray, t_min, t_max)
+        } else {
+            None
+        }
     }
 
     fn bounding_box(&self, _start_time: f64, _end_time: f64) -> Option<Aabb> {
